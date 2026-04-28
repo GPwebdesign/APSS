@@ -1,0 +1,557 @@
+#:kivy 2.0
+
+# ── Colori tema scuro ──────────────────────────────────────────────────────
+#:set CLR_BG       0.08, 0.08, 0.10, 1
+#:set CLR_SURFACE  0.13, 0.13, 0.16, 1
+#:set CLR_PRIMARY  0.00, 0.60, 0.90, 1
+#:set CLR_ACCENT   0.00, 0.85, 0.60, 1
+#:set CLR_TEXT     0.90, 0.90, 0.92, 1
+#:set CLR_DANGER   0.90, 0.25, 0.25, 1
+
+# ════════════════════════════════════════════════════════════════════════
+# MAIN SCREEN
+# ════════════════════════════════════════════════════════════════════════
+<MainScreen>:
+    name: "main"
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.08, 0.08, 0.10, 1
+        spacing: dp(6)
+        padding: dp(6)
+
+        # ── Toolbar ──────────────────────────────────────────────────
+        MDTopAppBar:
+            title: "APSSystem"
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            specific_text_color: 0.90, 0.90, 0.92, 1
+            right_action_items: [["camera", lambda x: app.go_screen("camera")], ["robot-outline", lambda x: app.go_screen("status")], ["map-marker-path", lambda x: app.go_screen("patrol")], ["bell-outline", lambda x: app.go_screen("alert")], ["cog-outline", lambda x: app.go_screen("settings")]]
+
+        # ── Stream video ──────────────────────────────────────────────
+        MDCard:
+            size_hint_y: 0.52
+            md_bg_color: 0.05, 0.05, 0.07, 1
+            radius: [dp(12)]
+            padding: dp(4)
+
+            Image:
+                id: camera_view
+                allow_stretch: True
+                keep_ratio: True
+                source: "assets/icons/no_signal.png"
+
+        # ── Badge stato connessione ───────────────────────────────────
+        MDBoxLayout:
+            size_hint_y: None
+            height: dp(28)
+            spacing: dp(8)
+            padding: [dp(4), 0]
+
+            MDIcon:
+                id: conn_icon
+                icon: "circle"
+                theme_text_color: "Custom"
+                text_color: 0.90, 0.25, 0.25, 1
+                size_hint_x: None
+                width: dp(24)
+
+            MDLabel:
+                id: conn_label
+                text: "Non connesso"
+                theme_text_color: "Custom"
+                text_color: 0.90, 0.90, 0.92, 1
+                font_style: "Caption"
+
+            MDRaisedButton:
+                text: "CONNETTI"
+                size_hint_x: None
+                width: dp(110)
+                md_bg_color: 0.00, 0.60, 0.90, 1
+                on_release: app.toggle_connection()
+
+        # ── Pad di controllo ──────────────────────────────────────────
+        MDCard:
+            size_hint_y: 0.42
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            radius: [dp(12)]
+            padding: dp(8)
+
+            GridLayout:
+                cols: 3
+                rows: 3
+                spacing: dp(6)
+                size_hint: 1, 1
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.20, 0.20, 0.25, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.on_btn_strafe_left_press()
+                    on_touch_up: if self.collide_point(*args[1].pos): root.on_btn_strafe_left_release()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "rotate-left"
+                            theme_text_color: "Custom"
+                            text_color: 0.00, 0.85, 0.60, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.on_btn_forward_press()
+                    on_touch_up: if self.collide_point(*args[1].pos): root.on_btn_forward_release()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-up-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.20, 0.20, 0.25, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.on_btn_strafe_right_press()
+                    on_touch_up: if self.collide_point(*args[1].pos): root.on_btn_strafe_right_release()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "rotate-right"
+                            theme_text_color: "Custom"
+                            text_color: 0.00, 0.85, 0.60, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.on_btn_left_press()
+                    on_touch_up: if self.collide_point(*args[1].pos): root.on_btn_left_release()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-left-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.90, 0.25, 0.25, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.on_btn_stop_press()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "stop"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.on_btn_right_press()
+                    on_touch_up: if self.collide_point(*args[1].pos): root.on_btn_right_release()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-right-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                Widget:
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.on_btn_backward_press()
+                    on_touch_up: if self.collide_point(*args[1].pos): root.on_btn_backward_release()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-down-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                Widget:
+
+        MDSlider:
+            min: 0.5
+            max: 1.0
+            value: 0.5
+            step: 0.1
+            size_hint_y: None
+            height: dp(40)
+            on_value: root.on_speed_change(self.value)
+
+# ════════════════════════════════════════════════════════════════════════
+# STATUS SCREEN
+# ════════════════════════════════════════════════════════════════════════
+<StatusScreen>:
+    name: "status"
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.08, 0.08, 0.10, 1
+
+        MDTopAppBar:
+            title: "Stato Sistema"
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            specific_text_color: 0.90, 0.90, 0.92, 1
+            left_action_items: [["arrow-left", lambda x: app.go_screen("main")]]
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+
+            MDLabel:
+                text: "Stato Sistema"
+                theme_text_color: "Custom"
+                text_color: 0.90, 0.90, 0.92, 1
+                font_style: "H6"
+
+            MDLabel:
+                text: "In sviluppo — Fase 7"
+                theme_text_color: "Custom"
+                text_color: 0.50, 0.50, 0.55, 1
+
+# ════════════════════════════════════════════════════════════════════════
+# PATROL SCREEN
+# ════════════════════════════════════════════════════════════════════════
+<PatrolScreen>:
+    name: "patrol"
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.08, 0.08, 0.10, 1
+
+        MDTopAppBar:
+            title: "Pattugliamento"
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            specific_text_color: 0.90, 0.90, 0.92, 1
+            left_action_items: [["arrow-left", lambda x: app.go_screen("main")]]
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+
+            MDLabel:
+                text: "Gestione Pattugliamento"
+                theme_text_color: "Custom"
+                text_color: 0.90, 0.90, 0.92, 1
+                font_style: "H6"
+
+            MDLabel:
+                text: "In sviluppo — Fase 5"
+                theme_text_color: "Custom"
+                text_color: 0.50, 0.50, 0.55, 1
+
+# ════════════════════════════════════════════════════════════════════════
+# ALERT SCREEN
+# ════════════════════════════════════════════════════════════════════════
+<AlertScreen>:
+    name: "alert"
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.08, 0.08, 0.10, 1
+
+        MDTopAppBar:
+            title: "Alert Sicurezza"
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            specific_text_color: 0.90, 0.90, 0.92, 1
+            left_action_items: [["arrow-left", lambda x: app.go_screen("main")]]
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+
+            MDLabel:
+                text: "Log Alert"
+                theme_text_color: "Custom"
+                text_color: 0.90, 0.90, 0.92, 1
+                font_style: "H6"
+
+            MDLabel:
+                text: "In sviluppo — Fase 6"
+                theme_text_color: "Custom"
+                text_color: 0.50, 0.50, 0.55, 1
+
+# ════════════════════════════════════════════════════════════════════════
+# SETTINGS SCREEN
+# ════════════════════════════════════════════════════════════════════════
+<SettingsScreen>:
+    name: "settings"
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.08, 0.08, 0.10, 1
+
+        MDTopAppBar:
+            title: "Impostazioni"
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            specific_text_color: 0.90, 0.90, 0.92, 1
+            left_action_items: [["arrow-left", lambda x: app.go_screen("main")]]
+
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(16)
+
+            MDTextField:
+                id: robot_ip
+                hint_text: "IP Robot"
+                text: "192.168.1.156"
+                mode: "rectangle"
+                line_color_focus: 0.00, 0.60, 0.90, 1
+
+            MDTextField:
+                id: tcp_port
+                hint_text: "Porta TCP"
+                text: "6000"
+                mode: "rectangle"
+                input_filter: "int"
+                line_color_focus: 0.00, 0.60, 0.90, 1
+
+            MDTextField:
+                id: stream_port
+                hint_text: "Porta Stream Video"
+                text: "6500"
+                mode: "rectangle"
+                input_filter: "int"
+                line_color_focus: 0.00, 0.60, 0.90, 1
+
+            MDRaisedButton:
+                text: "SALVA IMPOSTAZIONI"
+                md_bg_color: 0.00, 0.60, 0.90, 1
+                on_release: app.save_settings()
+
+# ════════════════════════════════════════════════════════════════════════
+# CAMERA SCREEN
+# ════════════════════════════════════════════════════════════════════════
+<CameraScreen>:
+    name: "camera"
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.08, 0.08, 0.10, 1
+        spacing: dp(6)
+        padding: dp(6)
+
+        MDTopAppBar:
+            title: "APSS — Camera Pan/Tilt"
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            specific_text_color: 0.90, 0.90, 0.92, 1
+            left_action_items: [["arrow-left", lambda x: app.go_screen("main")]]
+
+        MDCard:
+            size_hint_y: 0.52
+            md_bg_color: 0.05, 0.05, 0.07, 1
+            radius: [dp(12)]
+            padding: dp(4)
+            Image:
+                id: cam_view
+                allow_stretch: True
+                keep_ratio: True
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: dp(28)
+            spacing: dp(8)
+            padding: [dp(4), 0]
+            MDLabel:
+                id: lbl_pan
+                text: "Pan: 90°"
+                theme_text_color: "Custom"
+                text_color: 0.90, 0.90, 0.92, 1
+                font_style: "Caption"
+            MDLabel:
+                id: lbl_tilt
+                text: "Tilt: 90°"
+                theme_text_color: "Custom"
+                text_color: 0.90, 0.90, 0.92, 1
+                font_style: "Caption"
+
+        MDCard:
+            size_hint_y: 0.42
+            md_bg_color: 0.13, 0.13, 0.16, 1
+            radius: [dp(12)]
+            padding: dp(8)
+
+            GridLayout:
+                cols: 3
+                rows: 3
+                spacing: dp(8)
+                size_hint: 1, 1
+
+                Widget:
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.tilt_up()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-up-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                Widget:
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.pan_left()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-left-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.85, 0.60, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.go_home()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "home"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.pan_right()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-right-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                Widget:
+
+                BoxLayout:
+                    canvas.before:
+                        Color:
+                            rgba: 0.00, 0.60, 0.90, 1
+                        RoundedRectangle:
+                            pos: self.pos
+                            size: self.size
+                            radius: [dp(4)]
+                    on_touch_down: if self.collide_point(*args[1].pos): root.tilt_down()
+                    AnchorLayout:
+                        anchor_x: "center"
+                        anchor_y: "center"
+                        MDIcon:
+                            icon: "arrow-down-bold"
+                            theme_text_color: "Custom"
+                            text_color: 1, 1, 1, 1
+                            size_hint: None, None
+                            size: dp(32), dp(32)
+
+                Widget:
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: dp(56)
+            spacing: dp(8)
+            padding: [dp(8), dp(4)]
+
+            MDIconButton:
+                id: btn_photo
+                icon: "camera"
+                theme_icon_color: "Custom"
+                icon_color: 1, 1, 1, 1
+                on_release: root.take_photo()
+
+            Widget:
+
+            MDIconButton:
+                id: btn_record
+                icon: "record-circle"
+                theme_icon_color: "Custom"
+                icon_color: 1, 1, 1, 1
+                on_release: root.toggle_record()
