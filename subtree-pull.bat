@@ -11,7 +11,7 @@ if not exist ".git" (
 :menu
 cls
 echo ============================================
-echo   APSS > Aggiornamento Subtree da GitHub
+echo   APSS ^> Aggiornamento Subtree da GitHub
 echo ============================================
 echo.
 echo  1. Pull rosmaster_project
@@ -37,7 +37,7 @@ if %errorlevel% neq 0 (
     echo ERRORE durante il pull di rosmaster_project.
     goto fine_operazione
 )
-echo OK > rosmaster_project aggiornato.
+echo OK ^> rosmaster_project aggiornato.
 goto push_apss
 
 :pull_ros2
@@ -48,7 +48,7 @@ if %errorlevel% neq 0 (
     echo ERRORE durante il pull di ros2_py_ws.
     goto fine_operazione
 )
-echo OK > ros2_py_ws aggiornato.
+echo OK ^> ros2_py_ws aggiornato.
 goto push_apss
 
 :pull_entrambi
@@ -59,7 +59,7 @@ if %errorlevel% neq 0 (
     echo ERRORE durante il pull di rosmaster_project.
     goto fine_operazione
 )
-echo OK > rosmaster_project aggiornato.
+echo OK ^> rosmaster_project aggiornato.
 echo.
 echo [2/2] Pull ros2_py_ws...
 git subtree pull --prefix=ros2_py_ws https://github.com/GPwebdesign/ros2_py_ws.git main --squash
@@ -67,7 +67,7 @@ if %errorlevel% neq 0 (
     echo ERRORE durante il pull di ros2_py_ws.
     goto fine_operazione
 )
-echo OK > ros2_py_ws aggiornato.
+echo OK ^> ros2_py_ws aggiornato.
 goto push_apss
 
 :push_apss
@@ -77,7 +77,7 @@ git push origin master
 if %errorlevel% neq 0 (
     echo ERRORE durante il push di APSS su GitHub.
 ) else (
-    echo OK > github.com/GPwebdesign/APSS aggiornato.
+    echo OK ^> github.com/GPwebdesign/APSS aggiornato.
 )
 goto fine_operazione
 
