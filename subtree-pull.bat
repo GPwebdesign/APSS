@@ -11,7 +11,7 @@ if not exist ".git" (
 :menu
 cls
 echo ============================================
-echo   APSS — Aggiornamento Subtree da GitHub
+echo   APSS > Aggiornamento Subtree da GitHub
 echo ============================================
 echo.
 echo  1. Pull rosmaster_project
@@ -35,10 +35,10 @@ echo [1/1] Pull rosmaster_project...
 git subtree pull --prefix=rosmaster_project https://github.com/GPwebdesign/rosmaster_project.git main --squash
 if %errorlevel% neq 0 (
     echo ERRORE durante il pull di rosmaster_project.
-) else (
-    echo OK — rosmaster_project aggiornato.
+    goto fine_operazione
 )
-goto fine_operazione
+echo OK > rosmaster_project aggiornato.
+goto push_apss
 
 :pull_ros2
 echo.
@@ -46,10 +46,10 @@ echo [1/1] Pull ros2_py_ws...
 git subtree pull --prefix=ros2_py_ws https://github.com/GPwebdesign/ros2_py_ws.git main --squash
 if %errorlevel% neq 0 (
     echo ERRORE durante il pull di ros2_py_ws.
-) else (
-    echo OK — ros2_py_ws aggiornato.
+    goto fine_operazione
 )
-goto fine_operazione
+echo OK > ros2_py_ws aggiornato.
+goto push_apss
 
 :pull_entrambi
 echo.
@@ -57,16 +57,27 @@ echo [1/2] Pull rosmaster_project...
 git subtree pull --prefix=rosmaster_project https://github.com/GPwebdesign/rosmaster_project.git main --squash
 if %errorlevel% neq 0 (
     echo ERRORE durante il pull di rosmaster_project.
-) else (
-    echo OK — rosmaster_project aggiornato.
+    goto fine_operazione
 )
+echo OK > rosmaster_project aggiornato.
 echo.
 echo [2/2] Pull ros2_py_ws...
 git subtree pull --prefix=ros2_py_ws https://github.com/GPwebdesign/ros2_py_ws.git main --squash
 if %errorlevel% neq 0 (
     echo ERRORE durante il pull di ros2_py_ws.
+    goto fine_operazione
+)
+echo OK > ros2_py_ws aggiornato.
+goto push_apss
+
+:push_apss
+echo.
+echo [push] Allineamento APSS su GitHub...
+git push origin master
+if %errorlevel% neq 0 (
+    echo ERRORE durante il push di APSS su GitHub.
 ) else (
-    echo OK — ros2_py_ws aggiornato.
+    echo OK > github.com/GPwebdesign/APSS aggiornato.
 )
 goto fine_operazione
 
