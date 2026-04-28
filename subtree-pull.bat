@@ -53,7 +53,7 @@ if %errorlevel% neq 0 (
     echo OK ^> Documentazione pushata su GitHub.
 )
 echo.
-timeout /t 2 >nul
+pause
 
 :menu
 cls
