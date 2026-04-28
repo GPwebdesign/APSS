@@ -8,6 +8,52 @@ if not exist ".git" (
     exit /b 1
 )
 
+goto check_md
+
+
+:check_md
+cls
+echo ============================================
+echo   APSS ^> Controllo file documentazione
+echo ============================================
+echo.
+
+:: Cerca file .md modificati o non tracciati (escludi le sottocartelle dei subtree)
+set "md_modificati="
+for /f "delims=" %%f in ('git status --short -- "*.md" "docs/*.md" ".claude/skills/*.md" 2^>nul') do (
+    set "md_modificati=1"
+    echo   %%f
+)
+
+if not defined md_modificati (
+    echo   Nessuna modifica ai file .md. Tutto allineato.
+    timeout /t 2 >nul
+    goto menu
+)
+
+echo.
+echo   Trovate modifiche ai file .md non committate.
+echo.
+set /p "commit_md=Vuoi committare e pushare ora? [s/n]: "
+if /i "%commit_md%"=="s" goto commit_md
+if /i "%commit_md%"=="n" goto menu
+goto menu
+
+:commit_md
+echo.
+set /p "msg_md=Messaggio commit (invio = 'docs: aggiorna documentazione'): "
+if "%msg_md%"=="" set "msg_md=docs: aggiorna documentazione"
+git add "*.md" "docs/*.md" ".claude/skills/*.md"
+git commit -m "%msg_md%"
+git push origin master
+if %errorlevel% neq 0 (
+    echo ERRORE durante il push della documentazione.
+) else (
+    echo OK ^> Documentazione pushata su GitHub.
+)
+echo.
+timeout /t 2 >nul
+
 :menu
 cls
 echo ============================================
