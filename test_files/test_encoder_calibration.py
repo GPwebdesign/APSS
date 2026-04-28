@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Rosmaster_Lib import Rosmaster
 
 SPEED_OUT = 50
-TEST_DURATION = 1.0  # secondi
+TEST_DURATION = 3.0  # secondi
 
 def getch():
     fd = sys.stdin.fileno()

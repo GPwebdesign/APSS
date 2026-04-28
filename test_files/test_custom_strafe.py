@@ -35,7 +35,7 @@ def send_stop(sock):
 
 def send_custom_strafe_left(sock):
     s = SPEED_OUT
-    sock.sendall(build_motor_cmd(-s, s, -s, s))
+    sock.sendall(build_motor_cmd(-s-10, s, -s-10, s))
     print(f'[CUSTOM STRAFE LEFT] M1={-s} M2={s} M3={-s} M4={s}')
 
 def send_custom_strafe_right(sock):
