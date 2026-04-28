@@ -27,7 +27,8 @@ for /f "delims=" %%f in ('git status --short -- "*.md" "docs/*.md" ".claude/skil
 
 if not defined md_modificati (
     echo   Nessuna modifica ai file .md. Tutto allineato.
-    timeout /t 2 >nul
+    echo.
+    pause
     goto menu
 )
 
