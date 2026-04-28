@@ -1,0 +1,16 @@
+{
+  "description": "Fattori calibrazione motori APSS - verificati empiricamente",
+  "speed_base": 50,
+  "motors": {
+    "m1": 0.60,
+    "m2": 1.00,
+    "m3": 1.00,
+    "m4": 1.00
+  },
+  "notes": {
+    "m1": "anteriore sinistra - frenato 40% - motore fisicamente più veloce",
+    "m2": "anteriore destra - riferimento",
+    "m3": "posteriore sinistra - riferimento",
+    "m4": "posteriore destra - riferimento"
+  }
+}

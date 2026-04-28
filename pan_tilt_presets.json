@@ -1,0 +1,22 @@
+{
+  "home": {
+    "pan": 100,
+    "tilt": 85
+  },
+  "scan_left": {
+    "pan": 170,
+    "tilt": 90
+  },
+  "scan_right": {
+    "pan": 30,
+    "tilt": 90
+  },
+  "tilt_up": {
+    "pan": 100,
+    "tilt": 25
+  },
+  "tilt_down": {
+    "pan": 100,
+    "tilt": 165
+  }
+}
