@@ -1,5 +1,5 @@
 ---
-name: apss_tcp_protocol
+name: tcp-protocol
 description: >
   Attiva quando il codice tocca: TCP, set_motor, parse_data, send_motion,
   0x1A, 0x11, 0x10, cmd hex, checksum, rosmaster_main.py, tcp_client.py.
@@ -48,6 +48,10 @@ cmd = data[3:5].upper()  # OBBLIGATORIO — senza .upper() i comandi minuscoli v
 ```
 
 ## ⚠️ Gotchas (errori noti da evitare)
+
+> **Workflow PC:** il file `subtree-pull.bat` nella root di APSS controlla i file `.md`
+> non committati all'avvio e chiede se committare e pushare su GitHub.
+> Usarlo dopo ogni modifica a questa skill.
 
 - **MAI usare `set_car_motion()`** dalla libreria Rosmaster_Lib — produce movimenti errati con il cablaggio fisico APSS
 - **`len` field sbagliato** — il campo lunghezza è `data_size − 8`, non la lunghezza totale; per `0x1A` con 4 motori il valore corretto è `0x0C`
