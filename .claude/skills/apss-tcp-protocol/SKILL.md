@@ -1,5 +1,5 @@
 ---
-name: tcp-protocol
+name: apss-tcp-protocol
 description: >
   Attiva quando il codice tocca: TCP, set_motor, parse_data, send_motion,
   0x1A, 0x11, 0x10, cmd hex, checksum, rosmaster_main.py, tcp_client.py.
@@ -13,7 +13,7 @@ examples:
   - examples/advanced.md     # cinematica Mecanum completa
 ---
 
-# tcp-protocol
+# apss-tcp-protocol
 
 ## Formato pacchetto
 
