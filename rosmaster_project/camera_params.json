@@ -7,14 +7,5 @@
     "Contrast": 1.1,
     "Brightness": 0.0,
     "Saturation": 0.8
-  },
-  "vision": {
-    "AwbEnable": true,
-    "ColourGains": [1.0, 1.0],
-    "AeEnable": true,
-    "Sharpness": 3.0,
-    "Contrast": 1.1,
-    "Brightness": 0.1,
-    "Saturation": 0.3
   }
 }

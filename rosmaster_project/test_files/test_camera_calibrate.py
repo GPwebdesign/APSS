@@ -12,8 +12,7 @@ Tasti:
   +/- = Brightness +/-0.1
   E   = toggle AeEnable
   W   = toggle AwbEnable
-  P   = switch profilo streaming/vision
-  INVIO = salva entrambi i profili in camera_params.json
+  INVIO = salva profilo streaming in camera_params.json
   Q   = esci senza salvare
 """
 from picamera2 import Picamera2, controls
@@ -24,25 +23,14 @@ import time
 
 params_streaming = {
     "AwbEnable":   True,
-    "ColourGains": [1.0, 1.0],
+    "ColourGains": [1.3, 1.4],
     "AeEnable":    True,
     "Sharpness":   2.0,
-    "Contrast":    1.0,
-    "Brightness":  0.0,
-    "Saturation":  1.2,
-}
-
-params_vision = {
-    "AwbEnable":   True,
-    "ColourGains": [1.0, 1.0],
-    "AeEnable":    True,
-    "Sharpness":   3.0,
     "Contrast":    1.1,
-    "Brightness":  0.1,
-    "Saturation":  0.3,
+    "Brightness":  0.0,
+    "Saturation":  0.8,
 }
 
-current_profile = "streaming"
 params = params_streaming.copy()
 
 OUTPUT_JSON = os.path.join(os.path.dirname(__file__),
@@ -81,7 +69,6 @@ apply_params(cam, params)
 time.sleep(1)
 
 print("Camera calibration avviata. Premi i tasti per regolare.")
-print(f"[PROFILE] Profilo attivo: {current_profile}")
 print_params(params)
 
 while True:
@@ -99,10 +86,7 @@ while True:
         f"AWB:{params['AwbEnable']} AE:{params['AeEnable']}",
         (10, 75), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,255), 2)
     cv.putText(frame_bgr,
-        f"Profile: {current_profile}",
-        (10, 100), cv.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,255), 2)
-    cv.putText(frame_bgr,
-        "P=switch  INVIO=salva  Q=esci",
+        "INVIO=salva  Q=esci",
         (10, 460), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,0), 1)
 
     cv.imshow("APSS Camera Calibration", frame_bgr)
@@ -112,24 +96,11 @@ while True:
 
     if   key == ord('q'): break
     elif key == 13:  # INVIO
-        output = {
-            "streaming": params_streaming,
-            "vision": params_vision
-        }
+        output = {"streaming": params_streaming}
         with open(OUTPUT_JSON, 'w') as f:
             json.dump(output, f, indent=2)
-        print(f"\nEntrambi i profili salvati in {OUTPUT_JSON}")
+        print(f"\nProfilo streaming salvato in {OUTPUT_JSON}")
         break
-    elif key == ord('P'):
-        if current_profile == "streaming":
-            current_profile = "vision"
-            params = params_vision.copy()
-        else:
-            current_profile = "streaming"
-            params = params_streaming.copy()
-        apply_params(cam, params)
-        print(f"[PROFILE] Switched to: {current_profile}")
-        print_params(params)
     elif key == ord('R'): params['ColourGains'][0] = round(params['ColourGains'][0]+0.1, 1); changed=True
     elif key == ord('r'): params['ColourGains'][0] = round(params['ColourGains'][0]-0.1, 1); changed=True
     elif key == ord('B'): params['ColourGains'][1] = round(params['ColourGains'][1]+0.1, 1); changed=True
@@ -146,10 +117,7 @@ while True:
     elif key == ord('W'): params['AwbEnable'] = not params['AwbEnable']; changed=True
 
     if changed:
-        if current_profile == "streaming":
-            params_streaming.update(params)
-        else:
-            params_vision.update(params)
+        params_streaming.update(params)
         apply_params(cam, params)
         print_params(params)
 
