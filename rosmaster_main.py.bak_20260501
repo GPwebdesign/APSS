@@ -44,6 +44,7 @@ try:
     from rclpy.node import Node
     from nav_msgs.msg import Odometry
     from geometry_msgs.msg import TransformStamped
+    from sensor_msgs.msg import Image as RosImage
     import tf2_ros
     import math
     ROS2_AVAILABLE = True
@@ -118,6 +119,8 @@ g_odom_x     = 0.0   # posizione X nel frame odom (metri)
 g_odom_y     = 0.0   # posizione Y nel frame odom (metri)
 g_odom_theta = 0.0   # orientamento (radianti)
 g_enc_prev   = None  # valori encoder al ciclo precedente
+g_image_pub  = None
+g_ros_node   = None
 g_latest_frame = None
 g_frame_lock = threading.Lock()
 
@@ -865,6 +868,32 @@ def index():
     return render_template('index.html')
 
 
+# ─────────────────────────────────────────────────────
+# APSS — Publisher frame camera su ROS2 (Apr 2026)
+# Pubblica i frame della camera su /image_raw
+# permettendo ai nodi ROS2 di obstacle avoidance
+# di usare la camera senza conflitti con lo stream MJPEG
+# ─────────────────────────────────────────────────────
+def publish_image_frame(frame, pub, node):
+    """Pubblica frame numpy BGR su topic ROS2 /image_raw — ridimensionato a 320x240."""
+    try:
+        if not ROS2_AVAILABLE or pub is None:
+            return
+        # Ridimensiona a 320x240 per ridurre carico CPU/rete
+        small = cv.resize(frame, (160, 120))
+        img_msg = RosImage()
+        img_msg.header.stamp    = node.get_clock().now().to_msg()
+        img_msg.header.frame_id = 'camera_link'
+        img_msg.height  = small.shape[0]
+        img_msg.width   = small.shape[1]
+        img_msg.encoding = 'bgr8'
+        img_msg.step    = small.shape[1] * 3
+        img_msg.data    = small.tobytes()
+        pub.publish(img_msg)
+    except Exception as e:
+        if g_debug:
+            print(f"[IMAGE_PUB] Errore: {e}")
+
 
 @app.route('/video_feed')
 def video_feed():
@@ -935,6 +964,12 @@ def thread_odom():
     rclpy.init()
     node = Node('apss_odom_publisher')
     odom_pub = node.create_publisher(Odometry, '/odom', 10)
+    # ── Publisher immagine camera per obstacle avoidance ──
+    image_pub = node.create_publisher(RosImage, '/image_raw', 10)
+    print("[ODOM] Publisher /image_raw avviato")
+    global g_image_pub, g_ros_node
+    g_image_pub = image_pub
+    g_ros_node  = node
     tf_broadcaster = tf2_ros.TransformBroadcaster(node)
 
     print("[ODOM] Thread odometria avviato")
@@ -1038,6 +1073,20 @@ def thread_odom():
         time.sleep(DT)
 
 
+def thread_image_publisher():
+    """Thread dedicato: legge g_latest_frame e pubblica su /image_raw a 10Hz."""
+    print("[IMAGE_PUB] Thread publisher /image_raw avviato")
+    while True:
+        try:
+            with g_frame_lock:
+                frame = g_latest_frame
+            if frame is not None:
+                publish_image_frame(frame, g_image_pub, g_ros_node)
+        except Exception as e:
+            if g_debug:
+                print(f"[IMAGE_PUB] Errore: {e}")
+        time.sleep(0.05) # 20Hz
+
 
 # 麦克纳姆轮返回速度的线程
 def thread_mecanum():
@@ -1091,6 +1140,11 @@ if __name__ == '__main__':
         task_odom.setDaemon(True)
         task_odom.start()
         print("[ODOM] Thread odometria avviato")
+        task_image = threading.Thread(
+            target=thread_image_publisher, name="task_image")
+        task_image.setDaemon(True)
+        task_image.start()
+        print("[IMAGE_PUB] Thread publisher /image_raw avviato")
     else:
         print("[ODOM] ROS2 non disponibile — odometria disabilitata")
 

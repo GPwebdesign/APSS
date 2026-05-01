@@ -41,21 +41,21 @@ class Rosmaster_Camera(object):
             if self.__debug: print("video:", self.__video_id)
             self.__finalize_init()
 
-    def __load_vision_params(self):
-        """Legge il profilo 'vision' da camera_params.json, fallback su valori hardcoded."""
+    def __load_streaming_params(self):
+        """Legge il profilo 'streaming' da camera_params.json, fallback su valori hardcoded."""
         defaults = {
-            "AwbEnable":   False,
-            "ColourGains": (0.9, 1.1),
+            "AwbEnable":   True,
+            "ColourGains": (1.3, 1.4),
             "AeEnable":    True,
-            "Sharpness":   3.0,
-            "Contrast":    1.2,
-            "Saturation":  1.3,
-            "Brightness":  0.1,
+            "Sharpness":   2.0,
+            "Contrast":    1.1,
+            "Saturation":  0.8,
+            "Brightness":  0.0,
         }
         json_path = os.path.join(os.path.dirname(__file__), 'camera_params.json')
         try:
             with open(json_path) as f:
-                p = json.load(f)['vision']
+                p = json.load(f)['streaming']
             return {
                 "AwbEnable":   p.get("AwbEnable",   defaults["AwbEnable"]),
                 "ColourGains": tuple(p.get("ColourGains", defaults["ColourGains"])),
@@ -77,7 +77,7 @@ class Rosmaster_Camera(object):
             self.__picam = Picamera2()
             config = self.__picam.create_video_configuration(
                 main={"size": (self.__width, self.__height), "format": "RGB888"},
-                controls=self.__load_vision_params()
+                controls=self.__load_streaming_params()
             )
             self.__picam.configure(config)
             self.__picam.start()
