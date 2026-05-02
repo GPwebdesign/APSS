@@ -874,6 +874,25 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
+@app.route('/capture_still')
+def capture_still():
+    """Cattura un frame singolo ad alta qualità e lo invia come JPEG scaricabile."""
+    with g_frame_lock:
+        frame = g_latest_frame
+    if frame is None:
+        return "Camera non disponibile", 503
+    ret, img_encode = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 95])
+    if not ret:
+        return "Errore encoding", 500
+    from datetime import datetime
+    filename = datetime.now().strftime("still_%Y%m%d_%H%M%S.jpg")
+    return Response(
+        img_encode.tobytes(),
+        mimetype='image/jpeg',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
 @app.route('/init')
 def init():
     init_tcp_socket()
