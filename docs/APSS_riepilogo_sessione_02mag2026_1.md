@@ -9,13 +9,13 @@ Contesto: Robot autonomo di pattugliamento basato su Yahboom Rosmaster R2 + Rasp
 
 ## Hardware robot
 
-Struttura proprietaria GPwebdesign con componenti Yahboom (scheda STM32, 4 motori DC Mecanum). M1/M4 polarità invertita fisicamente. Ruote Mecanum configurazione X. Calibrazione motori: m1=0.60 (motor_calibration.json sul Pi). Speed base=55. Cinematica custom Python: M1=vx-vy+vz, M2=vx+vy-vz, M3=vx+vy+vz, M4=vx-vy-vz. Strafe laterale puro non ottenibile — mantenuto come rotazione stretta.
+Struttura proprietaria GPwebdesign con componenti Yahboom (scheda STM32, 4 motori DC Mecanum). M1/M4 polarità invertita fisicamente. Ruote Mecanum configurazione X. Calibrazione motori: m1=0.60 (motor_calibration.json sul Pi). Speed base=55. Cinematica custom Python: M1=vx-vy+vz, M2=vx+vy-vz, M3=vx+vy+vz, M4=vx-vy-vz. Strafe laterale puro ABBANDONATO — non ottenibile anche con ruote in configurazione X.
 
 ---
 
 ## App Kivy
 
-Kivy 2.3.1 + KivyMD 1.2.0, dark, portrait. Stream MJPEG http://192.168.1.158:6500/video_feed 31FPS. Pad 3x3 con slider velocità 0.5-1.0 per forward/backward. CameraScreen con pan/tilt (home graduale), foto JPG timestamp, video sequenza JPG in rosmaster_kivy/save/. Titolo: "APSSystem" / "Autonomous Patrol and Surveillance System".
+Kivy 2.3.1 + KivyMD 1.2.0, dark, portrait. Stream MJPEG http://192.168.1.158:6500/video_feed 31FPS. Pad 3x3 con slider velocità 0.5-1.0 per forward/backward. CameraScreen con pan/tilt (home graduale), foto JPG timestamp, video sequenza JPG in rosmaster_kivy/save/. Titolo: "APSSystem" / "Autonomous Patrol and Surveillance System". Pan/tilt controllato via cmd 0x11 nativo Yahboom — cmd 0x1B NON necessario.
 
 ---
 
@@ -73,7 +73,6 @@ OpenCV abbandonato. Sistema primario: 3x TOF400C VL53L1X (frontale 0°, sx 30°,
 - thread_camera: alimenta g_latest_frame con frame RGB nativo
 - Endpoint /video_feed: stream MJPEG operativo, colori corretti
 - Endpoint /capture_still: JPEG qualità 95, download su client
-- cmd 0x1A: controllo motori Mecanum via TCP (da testare/verificare)
 
 ---
 
@@ -100,16 +99,12 @@ Firmware v2.0 operativo. Dashboard http://192.168.1.193. INA219, reed GPIO18 NC,
 - Nav2 navigazione autonoma
 - Pattugliamento autonomo con waypoint
 - Docking autonomo ArUco
-- pan_tilt_node.py ROS2 + cmd TCP 0x1B per pan/tilt dall'app
-- Verifica strafe dopo rimontaggio ruote Mecanum in X
+- pan_tilt_node.py ROS2 con subscriber /pan_tilt/cmd (per pattugliamento autonomo)
 
 ---
 
 ## Pending items
 
-- TCP cmd `0x1B` per pan/tilt da Kivy (payload: pan+tilt 2 byte 0-180)
-- `pan_tilt_node.py` ROS2 con subscriber `/pan_tilt/cmd`
-- Verifica strafe laterale puro dopo rimontaggio ruote Mecanum
 - Backup su USB disk via SMB (path e credenziali pendenti)
 - Microswitch docking station (NC, GPIO18, stesso cablaggio reed)
 - Ripristino aggiornamenti ROS2 Humble su hawk dopo hold config completa
