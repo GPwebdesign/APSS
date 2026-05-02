@@ -170,10 +170,8 @@ class Rosmaster_Camera(object):
         """Restituisce (success, frame_bgr)"""
         if self.__picam is not None:
             try:
-                # picamera2 restituisce RGB888 — convertiamo in BGR per OpenCV
                 frame_rgb = self.__picam.capture_array()
-                frame_bgr = cv.cvtColor(frame_rgb, cv.COLOR_RGB2BGR)
-                return True, frame_bgr
+                return True, frame_rgb
             except Exception as e:
                 if self.__debug:
                     print(f"CSI get_frame error: {e}")
