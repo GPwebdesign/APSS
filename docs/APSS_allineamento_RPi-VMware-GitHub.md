@@ -1,5 +1,15 @@
 # APSS — Procedura Allineamento Git tra Raspberry Pi e VM
 
+> **Nota — apss-push.sh (Maggio 2026)**
+> Il workflow manuale descritto in questo documento è ancora valido.
+> Su hawk è disponibile `~/Workspaces/apss-push.sh` — script interattivo che
+> automatizza i comandi `git add -A + commit + push origin main` per entrambi
+> i repo con menu di selezione (1=rosmaster_project, 2=ros2_py_ws, 3=entrambi).
+> Sostituisce i comandi manuali sul Pi ma non sulla VM — sulla VM il workflow
+> rimane invariato.
+
+---
+
 **Contesto:** Due repository Git separati su GitHub (GPwebdesign, privati).
 Sviluppo sulla VM (gp68-vmware), deploy sul Pi (hawk). Workflow: VM → push → pull Pi.
 

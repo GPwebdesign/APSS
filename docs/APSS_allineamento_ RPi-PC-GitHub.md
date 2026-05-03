@@ -1,56 +1,155 @@
-# APSS — Workflow allineamento RPi ↔ PC ↔ GitHub
+# APSS — Guida Allineamento Repository
 
-## Strumenti
-- `~/Workspaces/apss-push.sh` — su hawk (RPi), gestisce push di entrambi i repo
-- `subtree-pull.bat` — su PC Windows, nella root di `D:\_claudecodeproject\APSS\`
+> Riferimento rapido per mantenere sincronizzati i tre repository del progetto.
 
 ---
 
-## Caso 1 — Ho modificato codice su hawk, voglio aggiornare il PC
+## Struttura dei repository
 
-**Su hawk:**
-```bash
-~/Workspaces/apss-push.sh
 ```
-- Seleziona `1` (rosmaster_project), `2` (ros2_py_ws) o `3` (entrambi)
-- Lo script mostra `git status --short`, chiede messaggio commit, fa `git add -A + commit + push origin main`
-- I due repo (`rosmaster_project` e `ros2_py_ws`) sono repo git indipendenti su GitHub
+github.com/GPwebdesign/APSS              ← repo principale (documentazione + subtree)
+github.com/GPwebdesign/rosmaster_project ← codice robot (server TCP, camera, kivy)
+github.com/GPwebdesign/ros2_py_ws        ← stack ROS2 (URDF, launch, SLAM, nodi)
+```
 
-**Sul PC:**
-- Lancia `subtree-pull.bat`
-- Il batch all'avvio controlla se ci sono file `.md` non committati in APSS → chiede se committare e pushare
-- Seleziona `1`, `2` o `3` per fare il pull del subtree corrispondente
-- Dopo ogni pull riuscito il batch fa automaticamente `git push origin master` per allineare `github.com/GPwebdesign/APSS`
+`rosmaster_project` e `ros2_py_ws` vivono dentro APSS come **subtree** — copie del codice
+incorporate direttamente nel repo, non come submodule.
 
 ---
 
-## Caso 2 — Ho modificato file .md o skill in APSS sul PC
+## Flusso standard (uso quotidiano)
 
-**Sul PC:**
-- Lancia `subtree-pull.bat`
-- Il batch all'avvio vede i file `.md` modificati/non tracciati, li elenca e chiede `[s/n]`
-- Rispondi `s`, inserisci messaggio commit → il batch fa `git add + commit + push` automaticamente
-- Poi procedi normalmente con il menu subtree se necessario
+### 1. Modifiche al codice su hawk → PC
 
-> I file `.md` (CLAUDE.md, docs/, .claude/skills/) vivono **solo in APSS sul PC** —
-> non fanno parte di nessun subtree e non passano per hawk.
+```
+hawk$ ./apss-push.sh          (in rosmaster_project/ o ros2_py_ws/)
+PC>   subtree-pull.bat         (opzione 1, 2 o 3 — fa pull + push APSS automatico)
+```
+
+### 2. Modifiche ai file .md → GitHub
+
+Il batch `subtree-pull.bat` controlla i file `.md` all'avvio e chiede se committare.
+In alternativa, dal terminale in `APSS/`:
+
+```bash
+git add CLAUDE.md docs/plan.md docs/architecture.md docs/allineamento_repo.md
+git commit -m "docs: aggiorna documentazione"
+git push
+```
 
 ---
 
-## Caso 3 — Clone su nuovo PC
+## Comandi manuali — riferimento completo
+
+### rosmaster_project
+
+**Da hawk — push su GitHub:**
+```bash
+cd ~/Workspaces/rosmaster_project
+./apss-push.sh
+```
+
+**Dal PC — aggiorna APSS da GitHub:**
+```bash
+git subtree pull --prefix=rosmaster_project https://github.com/GPwebdesign/rosmaster_project.git main --squash
+git push origin master
+```
+
+---
+
+### ros2_py_ws
+
+**Da hawk — push su GitHub:**
+```bash
+cd ~/Workspaces/ros2_py_ws
+./apss-push.sh
+```
+
+**Dal PC — aggiorna APSS da GitHub:**
+```bash
+git subtree pull --prefix=ros2_py_ws https://github.com/GPwebdesign/ros2_py_ws.git main --squash
+git push origin master
+```
+
+---
+
+### APSS — file documentazione (.md)
+
+**Dal PC — commit e push:**
+```bash
+cd D:\_claudecodeproject\APSS
+git add *.md docs/*.md .claude/skills/*.md
+git commit -m "docs: aggiorna documentazione"
+git push origin master
+```
+
+**Verifica stato:**
+```bash
+git status --short -- "*.md" "docs/*.md"
+```
+
+---
+
+### APSS — clone su nuovo PC
 
 ```bash
 git clone https://github.com/GPwebdesign/APSS.git
+cd APSS
 ```
-Include già tutto: documentazione + codice rosmaster_project + ros2_py_ws.
+Il clone include già tutto: documentazione + codice rosmaster_project + ros2_py_ws.
 
 ---
 
-## Decisioni chiave da ricordare
+## Verifica allineamento
 
-- `rosmaster_project` e `ros2_py_ws` sono **subtree** dentro APSS — copie del codice, non submodule
-- `apss-push.sh` usa **SSH** (`git@github.com`) — `subtree-pull.bat` usa **HTTPS** — compatibili
-- `apss-push.sh` risiede in `~/Workspaces/` e **non è tracciato** da nessun repo git (script locale su hawk)
-- Il batch controlla **solo i `.md`** nella root e in `docs/` e `.claude/skills/` — non il codice nei subtree
-- `--squash` sempre attivo nel subtree pull — la storia dei repo di codice non inquina APSS
-- Stop su hawk sempre con `./apss-push.sh` dalla dir `~/Workspaces/` — mai dai singoli repo
+**Stato locale vs GitHub:**
+```bash
+git log --oneline -5
+git status
+```
+
+**Verifica che origin sia allineato:**
+```bash
+git fetch origin
+git log --oneline origin/master -3
+```
+
+Se `origin/master` e `HEAD -> master` puntano allo stesso commit, tutto è allineato.
+
+---
+
+## Casi particolari
+
+### Subtree pull fallisce — "working tree has modifications"
+Il working tree di APSS ha modifiche non committate. Committale prima:
+```bash
+git add -A
+git commit -m "wip: salvataggio prima di subtree pull"
+git subtree pull --prefix=rosmaster_project ... --squash
+```
+
+### Subtree pull fallisce — "Updates were rejected"
+GitHub è avanti rispetto al locale. Fai prima un pull di APSS:
+```bash
+git pull origin master
+git subtree pull --prefix=rosmaster_project ... --squash
+```
+
+### Verificare l'ultimo commit di un subtree
+```bash
+git log --oneline -- rosmaster_project/ | head -5
+git log --oneline -- ros2_py_ws/ | head -5
+```
+
+---
+
+## Sbloccare aggiornamenti ROS2 (solo se necessario)
+
+Entrambi i sistemi hanno ~290 package ROS2 in hold a v16.0.19.
+
+```bash
+# Su hawk o gp68-vmware
+dpkg -l | grep "^ii  ros-humble-" | awk '{print $2}' | xargs sudo apt-mark unhold
+```
+
+> ⚠️ Non eseguire senza necessità — il hold garantisce stabilità del sistema.
