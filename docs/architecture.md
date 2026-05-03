@@ -11,7 +11,7 @@
 | Server robot | Python 3.10 — `rosmaster_main.py` |
 | App controllo | Kivy 2.3.1 + KivyMD 1.2.0 |
 | Firmware docking | MicroPython su ESP32 WROOM-32D |
-| Comunicazione | TCP porta 6000 (controllo) + HTTP porta 6500 (MJPEG) |
+| Comunicazione | TCP porta 6000 (controllo) + HTTP porta 6500 (MJPEG + `/capture_still`) |
 
 ---
 
@@ -25,7 +25,7 @@
 | Scheda espansione | Yahboom Rosmaster V3.0 | STM32F103RCT6 + IMU MPU9250 |
 | Ruote | 4x motori DC encoder Mecanum | M1=ant.sx, M2=ant.dx, M3=post.sx, M4=post.dx |
 | Camera | Arducam OV5647 CSI IR-cut | Focus fisso 0–1.5m, IR-cut via LDR |
-| Pan/Tilt | 2x servo PWM | S1=Tilt, S2=Pan (swap fisico) |
+| Pan/Tilt | 2x servo PWM | S1=Tilt, S2=Pan (swap fisico) — home: Pan=100°, Tilt=85° |
 | LiDAR | RPLIDAR A1M8 | `/dev/ttyUSB1`, offset 90°, ~7.7Hz |
 | Batteria | Yuasa YTZ10S 12V 8.6Ah AGM | Unica fonte energia robot |
 | OLED | SSD1306 0x3C | Operativo via `oled_node.py` |
@@ -153,6 +153,26 @@ strafe_factor = 0.9
 | 0x1A | `$02 1A 0C [m1][m2][m3][m4] 00 [cs]#` | set_motor diretto |
 | 0x11 | `$02 11 06 [id][angle][cs]#` | Servo: id 1=Tilt, 2=Pan |
 | Stop | `$021a0c000000000028#` | Tutti motori a zero |
+
+### Pipeline camera (v2.1 — consolidata)
+
+| Componente | Comportamento |
+|-----------|---------------|
+| `picamera2` / `get_frame()` | Restituisce frame RGB888 nativo — NESSUNA conversione cvtColor |
+| `thread_camera` / `g_latest_frame` | Contiene frame RGB nativo |
+| `mode_handle()` / stream MJPEG | NESSUNA conversione — RGB → `cv.imencode` → MJPEG → Kivy `colorfmt=rgb` |
+| `/capture_still` endpoint | Frame RGB → `cv.imencode` JPEG qualità 95 → download su client |
+| `camera_params.json` | SOLO profilo streaming (profilo vision rimosso in v2.1) |
+| Profilo streaming | `ColourGains(1.3,1.4)` Sharpness=2.0 Contrast=1.1 Brightness=0.0 Saturation=0.8 |
+
+> ⚠️ NON aggiungere conversioni `cvtColor` intermediate — il frame è RGB in tutto il pipeline.
+
+### Endpoint HTTP (porta 6500)
+
+| Endpoint | Metodo | Risposta |
+|----------|--------|----------|
+| `/video_feed` | GET | Stream MJPEG 31 FPS 640x480 |
+| `/capture_still` | GET | File JPEG qualità 95 — nome: `still_YYYYMMDD_HHMMSS.jpg` |
 
 ---
 
