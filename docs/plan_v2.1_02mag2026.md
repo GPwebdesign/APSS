@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Aprile 2026 — v1.9  
+> Aggiornato: Maggio 2026 — v2.1  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -19,26 +19,27 @@
 
 ### App Kivy
 - [x] Controllo motori Mecanum custom (formula verificata fisicamente)
-- [x] Stream video MJPEG 31 FPS a 640x480
-- [x] Controllo pan/tilt — movimento graduale home
+- [x] Stream video MJPEG 31 FPS a 640x480 — colori RGB corretti
+- [x] Controllo pan/tilt via cmd `0x11` nativo Yahboom — movimento graduale home
 - [x] Fix cmd.upper() in parse_data() — comandi case-sensitive
 - [x] Calibrazione M1: `motor_calibration.json` → `m1=0.60`
+- [x] Endpoint `/capture_still` — foto JPEG qualità 95 scaricabile su client
 
 ### Hardware verificato
 - [x] Polarità M1/M4 invertita fisicamente (fili M+/M- scambiati)
-- [x] Pan home=100°, Tilt home=95° — salvati in `pan_tilt_presets.json`
-- [x] Camera params: profili streaming e vision in `camera_params.json`
-- [x] Package hold ROS2 — hawk e gp68-vmware a v16.0.19 (~290 pkg)
+- [x] Pan home=100°, Tilt home=85° — salvati in `pan_tilt_presets.json`
+- [x] Package hold ROS2 — hawk e gp68-vmware (~290 pkg)
+
+### Pulizia codebase (Maggio 2026)
+- [x] Rimosso obstacle avoidance OpenCV da `rosmaster_main.py` — eliminati `thread_image_publisher`, `publish_image_frame`, `RosImage`, `g_image_pub`, `g_ros_node`
+- [x] Semplificato `camera_params.json` — solo profilo streaming (vision rimosso)
+- [x] Fix pipeline colore camera — RGB nativo picamera2, nessuna conversione intermedia
+- [x] `camera_rosmaster.py` — `__load_streaming_params()` sostituisce `__load_vision_params()`
+- [x] `test_camera_calibrate.py` — rimosso profilo vision, solo streaming
 
 ---
 
 ## 🔄 IN CORSO / PROSSIMI
-
-### Fase 0 — Pulizia codebase (ora)
-- [ ] Rimuovere obstacle avoidance OpenCV da `rosmaster_main.py`
-- [ ] Semplificare `camera_params.json` — tenere solo profilo streaming
-- [ ] Organizzare struttura progetto APSS (questo task)
-- [ ] Verificare e correggere `cmd 0x1A` length error (`10 != 12` → usare `0x0C`)
 
 ### Fase 1 — TOF400C VL53L1X (obstacle avoidance hardware)
 - [ ] Acquisto/ricezione TOF400C VL53L1X ×4 + TCA9548A I2C multiplexer
@@ -53,7 +54,7 @@
 - [ ] Setup Buildozer su gp68-vmware
 - [ ] `buildozer.spec` configurato per target Android
 - [ ] Build APK — test su dispositivo Android reale
-- [ ] Verifica stream video + controllo motori su Android
+- [ ] Verifica stream video + controllo motori + `/capture_still` su Android
 
 ### Fase 3 — SLAM mapping
 - [ ] Prima sessione di mapping con slam_toolbox
@@ -96,6 +97,7 @@
 
 ## 🔮 FUTURO (post v2.0)
 
+- [ ] `pan_tilt_node.py` ROS2 con subscriber `/pan_tilt/cmd` (per pattugliamento autonomo)
 - [ ] Architettura hardware indipendente: ESP32 + L298N/TB6612FNG + PCA9685 (sostituzione scheda Yahboom)
 - [ ] Protocollo ROS2 nativo `/cmd_vel` + `/joint_states` (elimina TCP proprietario)
 - [ ] Nodi fissi distribuiti nell'appartamento (ESP32 MQTT)
@@ -103,11 +105,21 @@
 
 ---
 
-## 📝 Open items / Bug noti
+## 📝 Open items / Pending
 
 | Item | Priorità | Note |
 |------|----------|------|
-| `cmd 0x1A` length error `10 != 12` | Alta | Usare `0x0C` invece di `0x0A` nel campo lunghezza; verificare blocco `elif cmd == "1A"` in rosmaster_main.py |
-| Camera `/capture_still` endpoint | Media | TODO: endpoint still-quality per foto singola |
-| Docking station microswitch | Media | Schema finalizzazione pendente; doc tecnico a v1.2/v1.5 |
-| MotionSmoother class | Bassa | Progettata ma in pausa — stop deve essere immediato, solo accel/direzione smussati |
+| Backup su USB disk via SMB | Media | Path e credenziali iliadbox pendenti |
+| Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |
+| Ripristino aggiornamenti ROS2 Humble su hawk | Bassa | Dopo hold config completa su entrambi i sistemi |
+
+---
+
+## 🚫 Abbandonato
+
+| Item | Motivo |
+|------|--------|
+| Strafe laterale puro Mecanum | Non ottenibile anche con ruote in configurazione X — mantenuto come rotazione stretta |
+| Obstacle avoidance OpenCV | Sostituito da TOF400C VL53L1X (hardware) — rimosso da codebase in v2.1 |
+| Cmd TCP `0x1B` pan/tilt custom | Non necessario — pan/tilt già funzionante via cmd `0x11` nativo Yahboom |
+| Profilo camera `vision` | Rimosso in v2.1 — solo profilo streaming necessario |
