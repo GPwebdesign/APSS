@@ -11,13 +11,20 @@ Piattaforma custom con componenti Yahboom Rosmaster R2, Raspberry Pi 4, ROS2 Hum
 
 | Sistema | Path | Ruolo |
 |---------|------|-------|
-| RPi4 `hawk` (192.168.1.158) | `~/rosmaster_project/` | Server TCP, camera, pan/tilt, odometria |
+| RPi4 `hawk` (192.168.1.158) | `~/Workspaces/rosmaster_project/` | Server TCP, camera, pan/tilt, odometria |
 | RPi4 `hawk` | `~/Workspaces/ros2_py_ws/` | Stack ROS2: URDF, launch, SLAM, RViz2 |
-| VM `gp68-vmware` (192.168.1.80) | `/home/gp68/rosmaster_project/` | Mirror sviluppo (stesso codice) |
-| VM `gp68-vmware` | `/home/gp68/ros2_py_ws/` | Mirror sviluppo ROS2 |
+| VM `gp68-vmware` (192.168.1.80) | `~/Workspaces/rosmaster_project/` | Sviluppo principale — commit/push da qui |
+| VM `gp68-vmware` | `~/Workspaces/ros2_py_ws/` | Sviluppo ROS2 — commit/push da qui |
+| PC Windows | `D:\_claudecodeproject\APSS\` | Repo principale APSS (subtree) — Filesystem MCP attivo |
 | Docking station ESP32 | `http://192.168.1.193` | Dashboard MicroPython, INA219, relay |
 
 ## Regole essenziali per Claude Code
+
+### Workflow sviluppo — CRITICO
+- Modifiche **sempre sulla VM** → commit/push → pull su hawk
+- **MAI modificare direttamente sul Pi**
+- File di progetto: cercare su **GitHub** (mai Google Drive — versioni vecchie)
+- Filesystem MCP attivo su PC (`D:\_claudecodeproject`) — Claude può leggere/modificare file direttamente
 
 ### Motori — CRITICO
 - **NON usare mai** `set_car_motion()` dalla libreria Rosmaster_Lib → produce movimenti errati
@@ -46,8 +53,29 @@ ros2 launch ~/ros2_py_ws/apss_lidar.launch.py
 
 ### Servo pan/tilt
 - S1 = Tilt, S2 = Pan (swap fisico rispetto alla denominazione Yahboom)
-- Home: Pan=100°, Tilt=95° (non 90/90)
+- Home: Pan=100°, Tilt=85°
 - Calibrazione: `pan_tilt_presets.json`
+- Cmd `0x11` nativo Yahboom — cmd `0x1B` NON necessario
+
+### Camera — pipeline colore (CONSOLIDATA v2.1)
+- `picamera2` restituisce RGB888 nativo — NESSUNA conversione in `get_frame()`
+- `mode_handle()`: NESSUNA conversione — RGB → `cv.imencode` → MJPEG → Kivy `colorfmt=rgb`
+- `/capture_still` (porta 6500): frame RGB → JPEG qualità 95 → download client
+- `camera_params.json`: SOLO profilo streaming (vision rimosso)
+- **NON aggiungere** conversioni `cvtColor` intermediate — invertono R e B
+
+### INA219 — monitor batteria
+- Indirizzo 0x40, shunt R100 (0.1Ω) — in serie al positivo tra alimentazione e scheda Yahboom
+- Corrente positiva = DISCHARGING, negativa = CHARGING
+- `battery_node.py`: pubblica `/battery` (BatteryState) + `/battery/stats` (BatteryStats custom) ogni 2s
+- Potenza calcolata come V×I (registro power INA219 non calibrato)
+
+### TOF400C VL53L1X — obstacle avoidance
+- TCA9548A multiplexer: indirizzo 0x70
+- Canali REALI: frontale→CH2, sinistro→CH3, destro→CH4 (NON CH0/CH1/CH2)
+- CH4 ha problema cablaggio — da risolvere
+- Architettura: `tof_node.py` → `/tof/front|left|right` → `avoidance_node.py` → `/cmd_vel`
+- Soglie: 50cm=rallenta, 40cm=pivot
 
 ### Package hold — NON aggiornare ROS2
 Entrambi i sistemi hanno ~290 package ROS2 in hold a v16.0.19.
@@ -61,5 +89,6 @@ Tutti i nuovi script di test vanno in `rosmaster_project/test_files/`
 
 ## Documentazione estesa
 - `@docs/architecture.md` — architettura completa hardware e software
-- `@docs/plan.md` — roadmap con stato avanzamento
-- Documentazione tecnica completa: `APSS_Documentazione_Tecnica_v1_9.docx`
+- `@docs/plan.md` — roadmap con stato avanzamento (v2.2)
+- `APSS_memorie.md` — memorie di sessione esportate (v1.1)
+- Documentazione tecnica completa: `APSS_Documentazione_Tecnica_v2_1.docx`
