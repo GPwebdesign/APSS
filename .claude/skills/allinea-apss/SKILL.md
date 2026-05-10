@@ -108,9 +108,12 @@ Poi aggiorna in sequenza:
 
 ## Step 3 — Documentazione tecnica .docx
 
-Chiedi all'utente:
+> ⚠️ **STOP OBBLIGATORIO** — Prima di procedere, chiedi sempre:
 > "Vuoi aggiornare anche `APSS_Documentazione_Tecnica_vX_X.docx`?
 > (richiede più tempo — genera un nuovo file Word)"
+>
+> **Attendi la risposta prima di qualsiasi altra azione.**
+> Non procedere allo Step 4 senza aver ricevuto una risposta esplicita (sì/no).
 
 - **Se sì:** leggi lo skill `docx` (`/mnt/skills/public/docx/SKILL.md`),
   poi genera il nuovo .docx aggiornando versione e data nel registro revisioni.
