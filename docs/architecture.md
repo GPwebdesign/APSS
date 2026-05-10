@@ -28,6 +28,7 @@
 | Pan/Tilt | 2x servo PWM | S1=Tilt, S2=Pan (swap fisico) — home: Pan=100°, Tilt=85° |
 | LiDAR | RPLIDAR A1M8 | `/dev/ttyUSB1`, offset 90°, ~7.7Hz |
 | Batteria | Yuasa YTZ10S 12V 8.6Ah AGM | Unica fonte energia robot |
+| Monitor alimentazione | INA219 0x40 | In serie al positivo — shunt R100 — libreria adafruit |
 | OLED | SSD1306 0x3C | Operativo via `oled_node.py` |
 
 ### Cinematica Mecanum — VALORI FISICI VERIFICATI
@@ -50,16 +51,28 @@ M4 = vx - vy - vz   (polarità invertita: fili M+/M- scambiati fisicamente)
 
 Calibrazione velocità: `motor_calibration.json` → `m1 = 0.60`
 
-### Sensori TOF (pianificati — Fase 5)
+### Sensori TOF (INSTALLATI — Maggio 2026)
 
-| Sensore | Posizione | Multiplexer |
-|---------|-----------|-------------|
-| TOF400C VL53L1X #1 | Frontale 0° | TCA9548A CH0 |
-| TOF400C VL53L1X #2 | Sinistra 30° | TCA9548A CH1 |
-| TOF400C VL53L1X #3 | Destra 30° | TCA9548A CH2 |
-| TOF400C VL53L1X #4 | Spare | TCA9548A CH3 |
+| Sensore | Posizione | Canale reale TCA9548A | Stato |
+|---------|-----------|----------------------|-------|
+| TOF400C VL53L1X #1 | Frontale 0° | CH2 | ✅ Verificato (0x29) |
+| TOF400C VL53L1X #2 | Sinistra 30° | CH3 | ✅ Verificato (0x29) |
+| TOF400C VL53L1X #3 | Destra 30° | CH4 | ⚠️ Problema cablaggio |
+| TOF400C VL53L1X #4 | Spare | — | Non collegato |
 
-Soglie obstacle avoidance: 50cm = rallenta, 40cm = pivot rotate
+TCA9548A: indirizzo I2C 0x70. Soglie obstacle avoidance: 50cm = rallenta, 40cm = pivot rotate.
+
+### INA219 — Monitor alimentazione robot
+
+Installato in serie al positivo tra alimentazione e scheda Yahboom (Maggio 2026).
+
+| Parametro | Valore |
+|-----------|--------|
+| Indirizzo I2C | 0x40 |
+| Shunt | R100 (0.1Ω) |
+| Libreria | adafruit-circuitpython-ina219 |
+| Convenzione corrente | Positiva = DISCHARGING (robot assorbe), Negativa = CHARGING (docking) |
+| Potenza | Calcolata come V × I (registro power non calibrato) |
 
 ---
 
@@ -73,6 +86,9 @@ Soglie obstacle avoidance: 50cm = rallenta, 40cm = pivot rotate
 | `apss_lidar.launch.py` | Launch: RPLIDAR + robot_state_publisher + tf + slam_toolbox + RViz2 |
 | `rviz/apss.rviz` | Configurazione RViz2 |
 | `oled_node.py` | Nodo OLED SSD1306 |
+| `battery_node.py` | Monitor INA219 — pubblica `/battery` + `/battery/stats` ogni 2s |
+| `tof_node.py` | (pianificato) Legge TCA9548A CH2/CH3/CH4 — pubblica `/tof/*` |
+| `avoidance_node.py` | (pianificato) Obstacle avoidance — subscribe `/tof/*` → pubblica `/cmd_vel` |
 
 ### TF tree
 ```
@@ -87,8 +103,10 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 |-------|------|-----------|
 | `/scan` | `sensor_msgs/LaserScan` | rplidar_node |
 | `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) |
-| `/cmd_vel` | `geometry_msgs/Twist` | (futuro: nav2 / avoidance_node) |
-| `/tof/front` `/tof/left` `/tof/right` | `sensor_msgs/Range` | tof_node (futuro) |
+| `/battery` | `sensor_msgs/BatteryState` | battery_node |
+| `/battery/stats` | `udemy_ros2_pkg/BatteryStats` | battery_node |
+| `/cmd_vel` | `geometry_msgs/Twist` | (pianificato: avoidance_node / nav2) |
+| `/tof/front` `/tof/left` `/tof/right` | `sensor_msgs/Range` | tof_node (pianificato) |
 
 ---
 
@@ -135,6 +153,8 @@ Convenzione INA219: corrente positiva = ricarica attiva, negativa = flusso inver
 | PatrolScreen | Placeholder | Pattugliamento autonomo (Fase 5) |
 | AlertScreen | Placeholder | Log alert + clip video (Fase 6) |
 | StatusScreen | Placeholder | Stato sistema, batteria (Fase 7) |
+
+**APK Android:** `apssystem-2.1-arm64-v8a_armeabi-v7a-debug.apk` generato con Buildozer 1.5.0 — target API 34, NDK 25b, Samsung S23 Ultra. Da testare.
 
 ### Parametri movimento
 
