@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Maggio 2026 — v2.1  
+> Aggiornato: Maggio 2026 — v2.2  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -37,24 +37,43 @@
 - [x] `camera_rosmaster.py` — `__load_streaming_params()` sostituisce `__load_vision_params()`
 - [x] `test_camera_calibrate.py` — rimosso profilo vision, solo streaming
 
+### Hardware sensori (Maggio 2026)
+- [x] INA219 installato in serie al positivo — indirizzo 0x40, shunt R100
+- [x] 3x TOF400C VL53L1X installati — frontale CH2, sinistro CH3, destro CH4
+- [x] TCA9548A multiplexer I2C installato — indirizzo 0x70
+- [x] CH2 e CH3 verificati OK — 0x29 su entrambi i canali
+- [ ] Fix cablaggio TOF destro CH4 — blocca bus I2C
+
+### Monitor batteria ROS2 (Maggio 2026)
+- [x] `battery_node.py` — legge INA219, pubblica `/battery` (BatteryState) ogni 2s
+- [x] `BatteryStats.msg` custom — min/max V/I/P + sample_count
+- [x] `/battery/stats` topic operativo — accumula statistiche da avvio nodo
+- [x] Logica status corretta: corrente positiva=DISCHARGING, negativa=CHARGING
+- [x] Tabella SoC AGM 12V integrata (12.70V=100% ... 11.50V=0%)
+
+### App Kivy Android (Maggio 2026)
+- [x] VM Buildozer configurata (Ubuntu 24.04, venv-buildozer, Buildozer 1.5.0)
+- [x] `buildozer.spec` configurato — API 34, NDK 25b, arm64-v8a + armeabi-v7a
+- [x] APK debug 2.1 generato — `apssystem-2.1-arm64-v8a_armeabi-v7a-debug.apk`
+- [ ] Test APK su Samsung S23 Ultra
+
 ---
 
 ## 🔄 IN CORSO / PROSSIMI
 
-### Fase 1 — TOF400C VL53L1X (obstacle avoidance hardware)
-- [ ] Acquisto/ricezione TOF400C VL53L1X ×4 + TCA9548A I2C multiplexer
-- [ ] Montaggio meccanico: frontale 0°, sinistra 30°, destra 30°, spare
+### Fase 1 — TOF400C VL53L1X (obstacle avoidance software)
+- [ ] Fix cablaggio TOF destro CH4 (blocca bus I2C)
 - [ ] `tof_node.py` — pubblica `sensor_msgs/Range` su `/tof/front`, `/tof/left`, `/tof/right`
-- [ ] Multiplexer TCA9548A: TOF1→CH0, TOF2→CH1, TOF3→CH2, TOF4→CH3
+- [ ] Canali reali TCA9548A: frontale→CH2, sinistro→CH3, destro→CH4
 - [ ] `avoidance_node.py` — soglie 50cm (slow) / 40cm (pivot)
 - [ ] `rosmaster_main.py` → subscriber `/cmd_vel` (separazione controllo/movimento)
 - [ ] Test fisico obstacle avoidance su percorso chiuso
 
 ### Fase 2 — App Kivy Android
-- [ ] Setup Buildozer su gp68-vmware
-- [ ] `buildozer.spec` configurato per target Android
-- [ ] Build APK — test su dispositivo Android reale
-- [ ] Verifica stream video + controllo motori + `/capture_still` su Android
+- [x] Setup Buildozer su VM dedicata Ubuntu 24.04
+- [x] `buildozer.spec` configurato — API 34, NDK 25b
+- [x] Build APK debug 2.1 generato
+- [ ] Test APK su Samsung S23 Ultra — stream video + motori + pan/tilt + `/capture_still`
 
 ### Fase 3 — SLAM mapping
 - [ ] Prima sessione di mapping con slam_toolbox
@@ -109,7 +128,7 @@
 
 | Item | Priorità | Note |
 |------|----------|------|
-| Backup su USB disk via SMB | Media | Path e credenziali iliadbox pendenti |
+| Backup su USB disk via SMB | Media | \\iliadbox_Server\iliadbox — utente Rino — cifs-utils da installare su hawk |
 | Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |
 | Ripristino aggiornamenti ROS2 Humble su hawk | Bassa | Dopo hold config completa su entrambi i sistemi |
 
