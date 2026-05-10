@@ -51,7 +51,7 @@
 - [x] Logica status corretta: corrente positiva=DISCHARGING, negativa=CHARGING
 - [x] Tabella SoC AGM 12V integrata (12.70V=100% ... 11.50V=0%)
 - [x] Test assorbimento reale (89 campioni): idle 0.63A/7.7W, picco 2.14A/25.7W
-- [ ] `oled_node.py` — aggiungere subscriber `/battery` (BatteryState) — topic disallineato
+- [x] `oled_node.py` — aggiunto subscriber `/battery` (BatteryState) — allineato con battery_node ✅
 - [ ] Ripetere test con batteria reale a piena carica (12.7V) e calibrare tabella SoC
 
 ### Boot e servizi systemd (Maggio 2026)
@@ -72,7 +72,7 @@
 
 ### Fase 0 — Integrazione nodi ROS2 base (IN CORSO)
 - [ ] Fix RPLIDAR standby al boot (script delay + retry)
-- [ ] `oled_node.py` — subscriber `/battery` (BatteryState) per dati reali INA219
+- [x] `oled_node.py` — subscriber `/battery` (BatteryState) per dati reali INA219 ✅
 - [ ] `battery_node` + `oled_node` aggiunti ad `apss_lidar.launch.py`
 - [ ] Test integrato: battery_node → /battery → oled_node → display
 

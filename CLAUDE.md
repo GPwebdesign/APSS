@@ -21,8 +21,11 @@ Piattaforma custom con componenti Yahboom Rosmaster R2, Raspberry Pi 4, ROS2 Hum
 ## Regole essenziali per Claude Code
 
 ### Workflow sviluppo — CRITICO
-- Modifiche **sempre sulla VM** → commit/push → pull su hawk
-- **MAI modificare direttamente sul Pi**
+- **Modifiche codice sempre sulla VM** (gp68-vmware, VSCode/ClaudeCode) → commit/push GitHub → pull su hawk per test
+- **Dopo test OK su hawk** → aggiornare subtree PC con `.\subtree-pull.bat`
+- **Modifiche da hawk** → `apss-push.sh` → pull su VM → `.\subtree-pull.bat` su PC
+- **Modifiche doc** (.md, skills) solo su PC in `D:\_claudecodeproject\APSS\` → push APSS
+- **MAI modificare codice direttamente sul PC** senza passare da VM o hawk
 - File di progetto: cercare su **GitHub** (mai Google Drive — versioni vecchie)
 - Filesystem MCP attivo su PC (`D:\_claudecodeproject`) — Claude può leggere/modificare file direttamente
 
@@ -89,6 +92,6 @@ Tutti i nuovi script di test vanno in `rosmaster_project/test_files/`
 
 ## Documentazione estesa
 - `@docs/architecture.md` — architettura completa hardware e software
-- `@docs/plan.md` — roadmap con stato avanzamento (v2.2)
-- `APSS_memorie.md` — memorie di sessione esportate (v1.1)
+- `@docs/plan.md` — roadmap con stato avanzamento (v2.3)
+- `APSS_memorie.md` — memorie di sessione (v1.2)
 - Documentazione tecnica completa: `APSS_Documentazione_Tecnica_v2_1.docx`

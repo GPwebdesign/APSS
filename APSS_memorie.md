@@ -1,5 +1,17 @@
 # APSS — Memorie di sessione
-> Revisione v1.1 — Maggio 2026
+> Revisione v1.2 — Maggio 2026
+
+---
+
+## Sessione 10 Maggio 2026
+- `apss-lidar-standby.service` installato e abilitato su hawk — utente `hawk` aggiunto a gruppo `dialout`
+- `apss_lidar_standby.py`: script stop motore RPLIDAR al boot (CMD_STOP + CMD_MOTOR) — ⚠️ motore riparte ancora, delay 3s + retry in test
+- `oled_node.py`: aggiunto subscriber `/battery` (BatteryState) per ricevere dati reali da `battery_node.py` — topic `/apss/battery` (JSON) mantenuto per compatibilità
+- `plan.md` aggiornato a v2.3, `architecture.md` aggiornato con tabella topic e sezione systemd
+- Workflow APSS consolidato: VM→hawk→PC→push. MAI modificare codice sul PC.
+- Skill `allinea-apss` creata in `.claude/skills/allinea-apss/SKILL.md`
+- Test assorbimento INA219: 89 campioni — idle 0.63A/7.7W, picco 2.14A/25.7W
+- Tutti e tre i repo allineati su: rosmaster_project `7945ca8`, ros2_py_ws `ee6fa7d`, APSS `bb5ddd2`
 
 ---
 
