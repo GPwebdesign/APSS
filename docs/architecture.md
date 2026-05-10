@@ -99,14 +99,26 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 
 ### Topic principali
 
-| Topic | Tipo | Produttore |
-|-------|------|-----------|
-| `/scan` | `sensor_msgs/LaserScan` | rplidar_node |
-| `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) |
-| `/battery` | `sensor_msgs/BatteryState` | battery_node |
-| `/battery/stats` | `udemy_ros2_pkg/BatteryStats` | battery_node |
-| `/cmd_vel` | `geometry_msgs/Twist` | (pianificato: avoidance_node / nav2) |
-| `/tof/front` `/tof/left` `/tof/right` | `sensor_msgs/Range` | tof_node (pianificato) |
+| Topic | Tipo | Produttore | Consumatore |
+|-------|------|-----------|-------------|
+| `/scan` | `sensor_msgs/LaserScan` | rplidar_node | slam_toolbox |
+| `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) | slam_toolbox |
+| `/battery` | `sensor_msgs/BatteryState` | battery_node | oled_node (⚠️ subscriber mancante) |
+| `/battery/stats` | `udemy_ros2_pkg/BatteryStats` | battery_node | — |
+| `/apss/battery` | `std_msgs/String` JSON | — | oled_node (topic attuale — da allineare) |
+| `/apss/mode` | `std_msgs/String` | — | oled_node |
+| `/cmd_vel` | `geometry_msgs/Twist` | (pianificato: avoidance_node / nav2) | rosmaster_main.py |
+| `/tof/front` `/tof/left` `/tof/right` | `sensor_msgs/Range` | tof_node (pianificato) | avoidance_node |
+
+> ⚠️ **Disallineamento topic batteria:** `battery_node` pubblica su `/battery` (BatteryState), `oled_node` subscribes `/apss/battery` (String JSON). Fix in corso: aggiungere subscriber `/battery` in `oled_node.py`.
+
+---
+
+## Servizi systemd (hawk)
+
+| Service | File | Stato | Funzione |
+|---------|------|-------|----------|
+| `apss-lidar-standby.service` | `rosmaster_project/apss_lidar_standby.py` | ✅ Installato/abilitato | Stop motore RPLIDAR al boot — ⚠️ delay init firmware da risolvere |
 
 ---
 

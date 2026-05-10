@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Maggio 2026 — v2.2  
+> Aggiornato: Maggio 2026 — v2.3  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -50,6 +50,15 @@
 - [x] `/battery/stats` topic operativo — accumula statistiche da avvio nodo
 - [x] Logica status corretta: corrente positiva=DISCHARGING, negativa=CHARGING
 - [x] Tabella SoC AGM 12V integrata (12.70V=100% ... 11.50V=0%)
+- [x] Test assorbimento reale (89 campioni): idle 0.63A/7.7W, picco 2.14A/25.7W
+- [ ] `oled_node.py` — aggiungere subscriber `/battery` (BatteryState) — topic disallineato
+- [ ] Ripetere test con batteria reale a piena carica (12.7V) e calibrare tabella SoC
+
+### Boot e servizi systemd (Maggio 2026)
+- [x] `apss_lidar_standby.py` — script stop motore RPLIDAR al boot
+- [x] `apss-lidar-standby.service` — systemd installato e abilitato su hawk
+- [x] Utente `hawk` aggiunto al gruppo `dialout`
+- [ ] Fix RPLIDAR standby — motore riparte dopo boot (delay init firmware)
 
 ### App Kivy Android (Maggio 2026)
 - [x] VM Buildozer configurata (Ubuntu 24.04, venv-buildozer, Buildozer 1.5.0)
@@ -60,6 +69,12 @@
 ---
 
 ## 🔄 IN CORSO / PROSSIMI
+
+### Fase 0 — Integrazione nodi ROS2 base (IN CORSO)
+- [ ] Fix RPLIDAR standby al boot (script delay + retry)
+- [ ] `oled_node.py` — subscriber `/battery` (BatteryState) per dati reali INA219
+- [ ] `battery_node` + `oled_node` aggiunti ad `apss_lidar.launch.py`
+- [ ] Test integrato: battery_node → /battery → oled_node → display
 
 ### Fase 1 — TOF400C VL53L1X (obstacle avoidance software)
 - [ ] Fix cablaggio TOF destro CH4 (blocca bus I2C)
