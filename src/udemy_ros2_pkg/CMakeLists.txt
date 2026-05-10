@@ -11,12 +11,15 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/OddEvenCheck.srv"
   "srv/TurnCamera.srv"
-  DEPENDENCIES 
+  "msg/BatteryStats.msg"
+  DEPENDENCIES
   sensor_msgs
+  std_msgs
 )
 
 ament_python_install_package(scripts)
@@ -35,6 +38,7 @@ install(PROGRAMS
   scripts/obstacle_detector_node.py
   scripts/navigation_controller_node.py
   scripts/oled_node.py
+  scripts/battery_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
