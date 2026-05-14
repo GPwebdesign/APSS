@@ -1,0 +1,31 @@
+# ============================================
+# APSS — .gitignore
+# ============================================
+
+# --- File personali e credenziali ---
+CLAUDE.local.md
+
+# --- Archivi e binari delle skill ---
+.claude/skills/*.zip
+
+# --- Python: bytecode e cache ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Editor e IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Temporanei e backup ---
+*.bak
+*.tmp
+*.orig
+*~

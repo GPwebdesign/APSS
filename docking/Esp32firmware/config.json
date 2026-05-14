@@ -1,0 +1,30 @@
+{
+    "wifi": {
+        "ssid": "W3Connettimy24",
+        "password": "Arafion968!020",
+        "timeout_s": 20
+    },
+    "webserver": {
+        "port": 80
+    },
+    "ntp_host": "pool.ntp.org",
+    "pin": {
+        "relay_ch1": 5,
+        "ina219_sda": 21,
+        "ina219_scl": 22,
+        "reed_switch": 18,
+        "grid_detect": 34
+    },
+    "ina219": {
+        "i2c_address": 64,
+        "shunt_ohms": 0.1,
+        "max_expected_amps": 3.0
+    },
+    "soglie": {
+        "tensione_min_v": 11.5,
+        "tensione_max_v": 15.0
+    },
+    "test": {
+        "lettura_intervallo_s": 2
+    }
+}
