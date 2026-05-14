@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Maggio 2026 — v2.3  
+> Aggiornato: Maggio 2026 — v2.4  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -42,7 +42,7 @@
 - [x] 3x TOF400C VL53L1X installati — frontale CH2, sinistro CH3, destro CH4
 - [x] TCA9548A multiplexer I2C installato — indirizzo 0x70
 - [x] CH2 e CH3 verificati OK — 0x29 su entrambi i canali
-- [ ] Fix cablaggio TOF destro CH4 — blocca bus I2C
+- [x] Fix TOF destro CH4 — sensore originale difettoso sostituito con scorta — tutti e 3 OK
 
 ### Monitor batteria ROS2 (Maggio 2026)
 - [x] `battery_node.py` — legge INA219, pubblica `/battery` (BatteryState) ogni 2s
@@ -52,7 +52,26 @@
 - [x] Tabella SoC AGM 12V integrata (12.70V=100% ... 11.50V=0%)
 - [x] Test assorbimento reale (89 campioni): idle 0.63A/7.7W, picco 2.14A/25.7W
 - [x] `oled_node.py` — aggiunto subscriber `/battery` (BatteryState) — allineato con battery_node ✅
-- [ ] Ripetere test con batteria reale a piena carica (12.7V) e calibrare tabella SoC
+- [ ] Aggiornare tabella SoC → LiFePO4 (plateau ~13.1-13.2V) in battery_node.py
+- [ ] Aggiornare soglie START/STOP in ESP32 config.json per LiFePO4
+
+### Batteria LiFePO4 (Maggio 2026)
+- [x] ECO-WORTHY 12V 8Ah LiFePO4 (B0CCJ8JJV3) acquistata — 50€ Amazon.it
+- [x] XL4016 ricalibrato: CV 14.82V → 14.40V — CC 0.9A confermata
+- [x] XHM603 soglie conservative: STOP=14.2V / START=13.1V display
+- [x] Prima ricarica parziale completata — OCV post-carica 13.27V (~85-90% SoC)
+- [ ] Sostituire fusibile T1.5A → T3A slow-blow (per alzare CC a 2A)
+- [ ] Ricalibrazione CC a 2A con monitoraggio temperatura
+- [ ] Verificare soglie XHM603 definitive dopo ciclo completo
+- [ ] Installazione fisica ECO-WORTHY nel robot
+- [ ] Test ciclo carica/scarica completo con robot agganciato
+
+### NotebookLM (Maggio 2026)
+- [x] Notebook APSS creato — ID bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5
+- [x] 9 fonti caricate — sistema doppio labeling area+stato
+- [x] Skill `apss-notebooklm-sync` creata in `.claude/skills/`
+- [x] Firmware ESP32 docking aggiunto al repo (`docking/Esp32firmware/`)
+- [x] `.gitignore` popolato
 
 ### Boot e servizi systemd (Maggio 2026)
 - [x] `apss_lidar_standby.py` — script stop motore RPLIDAR al boot
@@ -77,7 +96,7 @@
 - [ ] Test integrato: battery_node → /battery → oled_node → display
 
 ### Fase 1 — TOF400C VL53L1X (obstacle avoidance software)
-- [ ] Fix cablaggio TOF destro CH4 (blocca bus I2C)
+- [x] Fix TOF destro CH4 — sensore sostituito, tutti e 3 verificati OK (0x29)
 - [ ] `tof_node.py` — pubblica `sensor_msgs/Range` su `/tof/front`, `/tof/left`, `/tof/right`
 - [ ] Canali reali TCA9548A: frontale→CH2, sinistro→CH3, destro→CH4
 - [ ] `avoidance_node.py` — soglie 50cm (slow) / 40cm (pivot)

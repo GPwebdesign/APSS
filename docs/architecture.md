@@ -27,7 +27,7 @@
 | Camera | Arducam OV5647 CSI IR-cut | Focus fisso 0–1.5m, IR-cut via LDR |
 | Pan/Tilt | 2x servo PWM | S1=Tilt, S2=Pan (swap fisico) — home: Pan=100°, Tilt=85° |
 | LiDAR | RPLIDAR A1M8 | `/dev/ttyUSB1`, offset 90°, ~7.7Hz |
-| Batteria | Yuasa YTZ10S 12V 8.6Ah AGM | Unica fonte energia robot |
+| Batteria | ECO-WORTHY LiFePO4 12.8V 8Ah | Sostituisce Yuasa YTZ10S AGM — installazione in corso |
 | Monitor alimentazione | INA219 0x40 | In serie al positivo — shunt R100 — libreria adafruit |
 | OLED | SSD1306 0x3C | Operativo via `oled_node.py` |
 
@@ -57,7 +57,7 @@ Calibrazione velocità: `motor_calibration.json` → `m1 = 0.60`
 |---------|-----------|----------------------|-------|
 | TOF400C VL53L1X #1 | Frontale 0° | CH2 | ✅ Verificato (0x29) |
 | TOF400C VL53L1X #2 | Sinistra 30° | CH3 | ✅ Verificato (0x29) |
-| TOF400C VL53L1X #3 | Destra 30° | CH4 | ⚠️ Problema cablaggio |
+| TOF400C VL53L1X #3 | Destra 30° | CH4 | ✅ Verificato (0x29) — sensore originale difettoso, sostituito con scorta |
 | TOF400C VL53L1X #4 | Spare | — | Non collegato |
 
 TCA9548A: indirizzo I2C 0x70. Soglie obstacle avoidance: 50cm = rallenta, 40cm = pivot rotate.
@@ -127,13 +127,16 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 ### Circuito ricarica
 
 ```
-220VAC → [PSU 20V/3.25A] → [XL4016 CC/CV 14.82V/0.9A] → [Fusibile T1.6A]
-       → [XHM603 IN+] → [Relay] → [Batteria YTZ10S]
+220VAC → [PSU 20V/3.25A] → [XL4016 CC/CV 14.40V/0.9A] → [Fusibile T1.5A slow-blow]
+       → [XHM603 IN+] → [Relay] → [Batteria LiFePO4 ECO-WORTHY]
 ```
 
-Soglie XHM603 (compensate offset display +0.23/0.25V):
-- START: 12.2V (display) → ~11.95V reale
-- STOP: 14.7V (display) → ~14.47V reale
+Soglie XHM603 aggiornate per LiFePO4 (conservative):
+- START: 13.1V (display)
+- STOP: 14.2V (display)
+- Offset catena: display XHM603 vs terminali = +0.70V, INA219 vs terminali = +0.34V
+
+> ⚠️ **Fase D in corso:** fusibile T1.5A → T3A slow-blow, ricalibrazione CC a 2A, soglie XHM603 definitive da confermare dopo ciclo completo.
 
 ### ESP32 firmware v2.0
 

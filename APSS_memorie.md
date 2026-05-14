@@ -100,11 +100,11 @@ Config RViz2: `rviz/apss.rviz`. Display OLED SSD1306 0x3C operativo con `oled_no
 ## #10 — Hardware installato (TOF + INA219)
 HW **INSTALLATO** (Mag 2026): 3x TOF400C VL53L1X + TCA9548A.
 
-| Sensore | Posizione | Canale TCA9548A |
-|---|---|---|
-| TOF frontale | 0° | CH2 |
-| TOF sinistro | 30° | CH3 |
-| TOF destro | 30° | CH4 ⚠️ problema cablaggio |
+| Sensore | Posizione | Canale TCA9548A | Stato |
+|---|---|---|---|
+| TOF frontale | 0° | CH2 | ✅ OK (0x29) |
+| TOF sinistro | 30° | CH3 | ✅ OK (0x29) |
+| TOF destro | 30° | CH4 | ✅ OK (0x29) — sensore originale difettoso, sostituito con scorta |
 
 INA219 `0x40` in serie al positivo.
 Corrente positiva = DISCHARGING, negativa = CHARGING.
@@ -193,21 +193,34 @@ Stato: **in attesa consegna** per Fase D implementazione.
 
 ---
 
-## #19 — Fase D (da eseguire all'arrivo batteria)
-Fase D batteria LiFePO4 — **da eseguire quando la batteria arriva**:
+## #19 — Fase D (batteria LiFePO4 — IN CORSO)
+Fase D batteria LiFePO4 — **parzialmente completata**:
 
-1. **Ricalibrare XL4016** da 14,82V a 14,4-14,5V (max LiFePO4 = 14,6V)
-2. **Aggiornare `battery_node.py`** con tabella SoC LiFePO4 (curva piatta, plateau ~13,1-13,2V) — valutare coulomb counting
-3. **Nuove soglie START/STOP** in ESP32 `config.json`
-4. **Aggiornare documentazione**: `architecture.md` Sez.3, `Documentazione_Tecnica v2.2`, `CHANGELOG.md`
+1. ✅ **XL4016 ricalibrato** da 14,82V a 14,40V
+2. ✅ **Soglie XHM603 conservative:** STOP=14,2V / START=13,1V display
+3. ✅ **Prima ricarica parziale completata** — OCV post-carica 13,27V (~85-90% SoC)
+4. ⚠️ **Fusibile** T1,5A → T3A slow-blow (da sostituire prima di alzare CC a 2A)
+5. ⚠️ **Ricalibrazione CC** da 0,9A a 2A
+6. ⚠️ **Soglie XHM603 definitive** da verificare dopo ciclo completo
+7. ⚠️ **Installazione fisica** ECO-WORTHY nel robot
+8. ⚠️ **Software:** `battery_node.py` tabella SoC LiFePO4 + ESP32 `config.json`
 
-**Verifiche pre-collegamento:**
-- Tensione a vuoto attesa: 13,0-13,4V
-- Verificare polarità terminali con tester
-- Verificare tipo terminali (F1/F2)
-- Foto etichetta per archivio
-- ⚠️ NON collegare al XL4016 prima della ricalibrazione
+Offset catena misurato: display XHM603 vs terminali = +0,70V, INA219 vs terminali = +0,34V.
 
 ---
 
-*Esportato il 10 Maggio 2026 — APSS GPwebdesign*
+## #20 — NotebookLM APSS
+Notebook **CREATO** (14 Mag 2026):
+- ID: `bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5`
+- URL: https://notebooklm.google.com/notebook/bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5
+- 9 fonti da `D:\_claudecodeproject\APSS\` (radice + docs/)
+- Escluso: `CLAUDE.local.md` (credenziali)
+- Doppio labeling: area (📘🤖🗺️📝🔄🔌) + stato (📚⚙️)
+- Skill manutenzione: `.claude/skills/apss-notebooklm-sync/`
+- Firmware ESP32 docking nel repo: `docking/Esp32firmware/`
+- `.gitignore` popolato (era vuoto)
+- Gotcha critico: ricaricare fonte su NotebookLM cambia source_id e perde le label → riassegnazione obbligatoria
+
+---
+
+*Aggiornato il 14 Maggio 2026 — APSS GPwebdesign*
