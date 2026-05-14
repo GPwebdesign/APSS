@@ -1,18 +1,27 @@
 # Schema Label NotebookLM APSS
 
-## Principio
+## Principio (schema singolo — Mag 2026)
 
-**Doppio labeling:** ogni fonte ha **esattamente 2 label**:
-- 1 label di **AREA** (cosa tratta il documento)
-- 1 label di **STATO** (come evolve nel tempo)
+**Singolo labeling per AREA:** ogni fonte ha **esattamente 1 label** che descrive il dominio di contenuto.
 
-Le label sono **non gerarchiche** in NotebookLM — un source può essere in più label. La regola "2 label per source" è una convenzione del progetto APSS, non un vincolo tecnico.
+Lo **stato** (stabile vs in evoluzione) si capisce dal nome del file stesso:
+- File con `_v2_X` nel nome → revisione, indica documento "reference"
+- File con `_sessione_mag2026_N` → log temporale, indica "in-corso"
+- File `plan.md` → roadmap, sempre in evoluzione
+- Altri (`architecture.md`, `CLAUDE.md`, schemi `.pdf`) → reference per default
+
+### Perché schema singolo invece di doppio
+
+Lo schema originale era doppio (area + stato), ma è stato semplificato a singolo dopo
+test reali (vedi `@examples/cleanup-ghosts.md`):
+- **Manutenzione 2x più costosa** (2 assegnazioni per source invece di 1)
+- **Superficie doppia per i bug fantasma** (8 label invece di 6)
+- **Valore informativo dello stato basso** — si deduce comunque dal filename
+- **Auto-labeling AI di NotebookLM** non rispetta lo schema doppio dopo `reorganize` distruttivo
 
 ---
 
 ## Label per AREA
-
-Le label di area descrivono **il dominio del contenuto**. Ogni fonte appartiene a esattamente 1 area.
 
 | Label | Emoji | Quando usarla |
 |---|---|---|
@@ -31,35 +40,9 @@ Crea una nuova area solo se:
 3. L'utente ha **esplicitamente confermato** la creazione
 
 Areas potenziali future (non ancora create):
-- `hardware-robot` 🤖 → schemi/foto del robot stesso (oggi tutto sta in overview/Documentazione Tecnica)
+- `hardware-robot` 🔧 → schemi/foto del robot stesso (oggi tutto sta in overview/Documentazione Tecnica)
 - `code-snippets` 💻 → snippet di codice riusabili
 - `troubleshooting` 🩺 → soluzioni a problemi ricorrenti
-
-> ⚠️ NB: l'emoji 🤖 è già usato per `onboarding-ai`. Se creo `hardware-robot` userò un'altra emoji.
-
----
-
-## Label per STATO
-
-Le label di stato descrivono **come evolve la fonte nel tempo**. Ogni fonte appartiene a esattamente 1 stato.
-
-| Label | Emoji | Quando usarla |
-|---|---|---|
-| `stato: reference` | 📚 | Documentazione stabile, cambia raramente (architettura consolidata, schemi elettrici, regole) |
-| `stato: in-corso` | ⚙️ | Documenti che cambiano ad ogni sessione (plan, riepiloghi sessione attiva) |
-
-### Regola di classificazione stato
-
-| Domanda da farsi | Risposta SI → label |
-|---|---|
-| Questo file lo modificherò nelle prossime 2-3 sessioni? | ⚙️ in-corso |
-| Questo file è stato modificato nelle ultime 2-3 sessioni? | ⚙️ in-corso |
-| Questo file resta stabile per mesi? | 📚 reference |
-| Schema elettrico/protocollo consolidato? | 📚 reference |
-
-### Possibile evoluzione futura
-
-Quando una fase si chiude, una label `stato: completato` ✅ avrà senso per archiviare fonti che descrivono fasi finite ma ancora utili come reference storica. Per ora i due stati bastano.
 
 ---
 
@@ -68,25 +51,22 @@ Quando una fase si chiude, una label `stato: completato` ✅ avrà senso per arc
 Quando una nuova fonte viene aggiunta, applicare questo flowchart:
 
 ```
-È un .docx/.pdf di documentazione master?           → overview + reference
-È istruzioni operative per AI (CLAUDE.md-like)?     → onboarding-ai + reference
-È un plan/roadmap con task tracking?                → roadmap + (in-corso se attivo, altrimenti reference)
-È un log di sessione/memorie storiche?              → session-log + (in-corso se ultima sessione, altrimenti reference)
-È un file su Git workflow/repo alignment?           → workflow-git + reference
-È uno schema elettrico della docking station?       → hardware-docking + reference
+È un .docx/.pdf di documentazione master?           → 📘 overview
+È istruzioni operative per AI (CLAUDE.md-like)?     → 🤖 onboarding-ai
+È un plan/roadmap con task tracking?                → 🗺️ roadmap
+È un log di sessione/memorie storiche?              → 📝 session-log
+È un file su Git workflow/repo alignment?           → 🔄 workflow-git
+È uno schema elettrico della docking station?       → 🔌 hardware-docking
 Altro?                                              → CHIEDI all'utente prima di creare nuove label
 ```
 
 ---
 
-## Convenzioni nomi e separatori
+## Convenzioni nomi
 
-- **Nome label area:** una parola lowercase, eventualmente kebab-case (es. `workflow-git`, `onboarding-ai`)
-- **Nome label stato:** `stato: <valore>` con **separatore `: `** (due punti + spazio)
-  - ✅ `stato: reference`
-  - ❌ `stato:reference` (senza spazio)
-  - ❌ `Stato: Reference` (maiuscole)
+- **Nome label:** una parola lowercase, eventualmente kebab-case (es. `workflow-git`, `onboarding-ai`)
 - **Emoji:** sempre 1 emoji, scelta perché evoca la categoria senza ambiguità
+- **Niente label con prefisso `stato: `** — questo era lo schema vecchio, non riproporlo
 
 ---
 
@@ -96,12 +76,30 @@ Dopo modifiche alle label, eseguire:
 
 ```python
 label:list(notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5")
+notebook_get(notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5")
 ```
 
-Controlli:
-1. **Tutte le fonti hanno almeno 1 area + 1 stato?**
-   Calcola: per ogni source_id nelle aree, verifica che compaia anche in uno stato
+Controlli (schema singolo):
+1. **Ogni fonte ha esattamente 1 label?**
+   La somma dei source_ids in tutte le label deve essere uguale a `source_count`.
+   Se è maggiore → ci sono fantasmi o doppie assegnazioni.
 2. **Nessuna fonte ha 2 aree contemporaneamente?**
-   (Se sì, è un errore di assegnazione: una fonte = 1 area, salvo eccezione esplicita)
-3. **Nessuna fonte ha 2 stati contemporaneamente?**
-   (in-corso E reference insieme è un errore)
+   Una fonte = 1 area, sempre. Se cambi area, prima rimuovi da quella vecchia
+   (ma attenzione: l'API non ha `unassign` — l'unico modo è `reorganize` distruttivo).
+3. **Tutti i 6 label hanno almeno 1 source assegnato?**
+   Label vuote sono OK ma segnalano possibili refactoring (forse area inutile).
+
+---
+
+## Comportamento auto-labeling AI di NotebookLM
+
+⚠️ **Attenzione:** NotebookLM ha un'AI di auto-labeling che si attiva in alcune condizioni:
+
+| Trigger | Effetto |
+|---|---|
+| `label:auto` esplicito | Genera label inglesi generiche (es. "Project Synchronization") |
+| `label:reorganize unlabeled_only=false confirm=true` | Cancella tutte le label e ricrea da AI |
+| `label:list` quando nessuna label esiste | **Trigger nascosto:** ricrea label AI |
+| Cancellazione di TUTTE le label | Al successivo `list`, AI le rigenera |
+
+**Implicazione pratica:** se devi fare un reset distruttivo, **non chiamare `list` tra `delete` e `create`** — l'AI ti rigenerebbe le label inglesi che dovresti poi cancellare di nuovo. Vai diretto a `create` con le tue label.

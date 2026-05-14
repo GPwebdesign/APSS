@@ -6,6 +6,17 @@ L'utente chiede: *"verifica se il notebook è allineato con i file su disco"*
 
 ## Procedura passo passo
 
+### Passo 0 — Verifica autenticazione
+
+```python
+notebook_get(notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5")
+```
+
+Se ritorna `"Authentication expired"`:
+1. Prova `refresh_auth()` — se restituisce success ma il `notebook_get` fallisce ancora, i token su disco sono comunque scaduti
+2. Chiedi all'utente di eseguire `nlm login` da terminale sul PC
+3. Dopo conferma utente, richiama `refresh_auth()` e ritenta
+
 ### Passo 1 — Lista file su disco
 
 ```python
@@ -21,13 +32,22 @@ Filesystem:list_directory_with_sizes(
 
 Filtra dai risultati i file **da includere** nel notebook (vedi `@references/notebook-constants.md` per la lista canonica) e escludi `CLAUDE.local.md`, `.git/`, ecc.
 
-### Passo 2 — Lista fonti nel notebook
+### Passo 2 — Lista fonti nel notebook + check integrità
 
 ```python
 notebook_get(notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5")
+label:list(notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5")
 ```
 
-Estrai `sources[].title` per avere la lista delle fonti correnti.
+**Doppio controllo:**
+
+1. **Allineamento disco↔notebook:** confronto file su disco vs `sources[].title`
+2. **Integrità label (no fantasmi):**
+   - somma `source_ids` in tutte le label
+   - confronta con `source_count` del notebook
+   - schema singolo: deve essere **==** (ogni source ha 1 label)
+   - se > source_count → fantasmi (vedi `@examples/cleanup-ghosts.md`)
+   - se < source_count → ci sono source senza label
 
 ### Passo 3 — Confronto
 
@@ -36,12 +56,14 @@ Costruisci una tabella di allineamento. Esempio output:
 ```
 | File | Su disco | Nel notebook | Azione |
 |---|---|---|---|
-| architecture.md           | ✅ 8.16 KB | ✅ | OK |
-| plan.md                   | ✅ 7.40 KB | ✅ | OK |
+| architecture.md           | ✅ 8.45 KB | ✅ | OK |
+| plan.md                   | ✅ 8.47 KB | ✅ | OK |
 | APSS_riepilogo_..._3.md   | ✅ 3.38 KB | ✅ | OK |
 | nuovo_doc.md              | ✅ 2.10 KB | ❌ | → AGGIUNGERE |
-| APSS_riepilogo_..._2.md   | ❌ removed | ✅ | → RIMUOVERE |
+| APSS_Documentazione_v2_1  | ❌ removed | ✅ | → RIMUOVERE |
 | CLAUDE.local.md           | ✅ 1.06 KB | — | escluso (credenziali) |
+
+Integrità label: 9 source totali, 9 source_ids in label ✅ (no fantasmi)
 ```
 
 ### Passo 4 — Segnalazione confronto contenuti (opzionale)
@@ -50,7 +72,8 @@ Per i file presenti su entrambi i lati, il confronto **byte-a-byte non è possib
 (il notebook ha contenuto indicizzato, non file binari). Strategie:
 
 1. **Confronto leggero (default):** se la dimensione su disco è cambiata vs ultima sync nota → suggerisci ricarica
-2. **Confronto profondo (su richiesta):** leggere il contenuto indicizzato con
+2. **Confronto via filesystem:** se nelle costanti hai annotato la dimensione precedente, confronta con `Filesystem:get_file_info` per individuare modifiche silenti
+3. **Confronto profondo (su richiesta):** leggere il contenuto indicizzato con
    `source_get_content(source_id)` e confrontare a campione con `Filesystem:read_text_file`
    - Costoso: usalo solo se l'utente esprime dubbi specifici su un file
    - Esempio: "ho riscritto architecture.md, verifica che il notebook abbia la versione nuova"
@@ -66,11 +89,13 @@ Sempre con un riepilogo strutturato:
 
 **Fonti su disco:** N file
 **Fonti nel notebook:** M file
+**Integrità label:** ✅ nessun fantasma / ⚠️ K source fantasma rilevati
 
 ### Azioni proposte
-- [ ] Aggiungere: `nuovo_doc.md` (suggerisco label: `📝 session-log` + `⚙️ stato: in-corso`)
+- [ ] Aggiungere: `nuovo_doc.md` (suggerisco label: `📝 session-log`)
 - [ ] Rimuovere: `vecchio_doc.md` (obsoleto su disco)
 - [ ] Ricaricare: `architecture.md` (modificato su disco — verifica manuale richiesta)
+- [ ] [se fantasmi presenti] Cleanup fantasmi: vedi `cleanup-ghosts.md`
 
 Vuoi che proceda con queste azioni?
 ```
@@ -79,21 +104,41 @@ Vuoi che proceda con queste azioni?
 
 ---
 
-## Esempio reale (Maggio 2026)
+## Esempio reale — Sessione 14 Maggio 2026
 
 ```
-Utente: "ho aggiornato plan.md e architecture.md, il notebook è in pari?"
+Utente: "ho aggiornato plan.md, architecture.md, APSS_memorie.md e bumpato la
+         Documentazione Tecnica a v2.2. Il notebook è in pari?"
 
 Claude:
-1. Filesystem:list_directory_with_sizes("D:\\_claudecodeproject\\APSS\\docs")
-   → plan.md 7.40 KB, architecture.md 8.16 KB
-2. notebook_get(...)
-   → 9 fonti, plan.md e architecture.md presenti
-3. Filesystem:get_file_info(plan.md) → modified: 14 Mag 2026
-4. Risposta:
-   "Entrambi i file sono presenti nel notebook ma `plan.md` risulta modificato
-    oggi su disco. Il notebook ha la versione precedente (caricata il 13 Mag).
-    Per allineare, dovresti rimuoverlo e ricaricarlo manualmente dal browser
-    (poi io riassegno le label).
-    Procediamo?"
+1. notebook_get(...) → 9 fonti, Documentazione v2.1 ancora presente
+2. Filesystem:list_directory_with_sizes("D:\\..\\docs") → vedo Documentazione_v2_2.docx (nuovo)
+   e niente più v2_1
+3. Risposta tabellare:
+   - architecture.md       modified  → ricaricare
+   - plan.md               modified  → ricaricare
+   - APSS_memorie.md       modified  → ricaricare
+   - Documentazione v2_1   deleted   → rimuovere
+   - Documentazione v2_2   new       → aggiungere
+   
+   "Servono 5 operazioni manuali nel browser. Procediamo?"
+
+→ Utente: "fatte"
+
+→ Claude (dopo ricarica multipla):
+   - label:list → conteggio: 13 source_ids in label vs source_count 9
+   - DIAGNOSI: 4 source fantasma (i vecchi 4 source rimossi)
+   - Propone cleanup completo via reorganize distruttivo
 ```
+
+---
+
+## Quando saltare la procedura completa
+
+Se l'utente specifica un'azione singola (es. "aggiungi `nuovo_doc.md`"), non serve
+fare l'intero allineamento — vai direttamente al workflow `add-source` o `reload-source`.
+
+La procedura di allineamento completa è utile quando:
+- L'utente ha appena fatto un commit Git con più modifiche
+- È passato del tempo dall'ultima sync (incertezza sullo stato)
+- L'utente sta chiudendo una sessione di sviluppo (usare insieme alla skill `allinea-apss`)

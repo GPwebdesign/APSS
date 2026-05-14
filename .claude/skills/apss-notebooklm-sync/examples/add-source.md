@@ -28,15 +28,14 @@ Controlla che NON sia uno dei file da escludere:
 
 Se sospetti credenziali → **NON aggiungerlo e segnala all'utente**.
 
-### Passo 3 — Proponi label
+### Passo 3 — Proponi label area
 
-In base al contenuto, proponi label area + stato:
+In base al contenuto, proponi UNA label area (schema singolo Mag 2026):
 
 ```
 "Ho letto `nuovo_doc.md` — sembra un log di una sessione di test motori.
-Proporrei queste label:
-  - Area:  📝 session-log
-  - Stato: ⚙️ stato: in-corso  (perché documenta una fase attiva)
+Proporrei questa label area:
+  - 📝 session-log
 
 Va bene o preferisci diversamente?"
 ```
@@ -49,7 +48,7 @@ Va bene o preferisci diversamente?"
 "Caricalo manualmente dal browser nel notebook APSS:
  https://notebooklm.google.com/notebook/bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5
  
- Quando hai finito, dimmi 'caricato' e io applico le label."
+ Quando hai finito, dimmi 'caricato' e io applico la label."
 ```
 
 ### Passo 5 — Recupera nuovo source_id
@@ -62,23 +61,15 @@ notebook_get(notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5")
 
 Trova il nuovo entry con `title="nuovo_doc.md"` e annota `id` (es. `f1a2b3c4-...`).
 
-### Passo 6 — Applica label
+### Passo 6 — Applica label area (1 sola)
 
 ```python
-# Label area (es. session-log)
+# Schema singolo: 1 label area per source
 label:move_source(
     action="move_source",
     notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5",
-    label_id="4b2d9dc5-a8d6-4f71-b18a-05cef7c81b2f",  # session-log
+    label_id="257a0d0e-1f2b-4a83-ae18-7ea329b4b85e",  # session-log
     source_id="f1a2b3c4-..."  # nuovo source_id
-)
-
-# Label stato (es. in-corso)
-label:move_source(
-    action="move_source",
-    notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5",
-    label_id="4ff44f72-f20d-415c-9934-20fab2492433",  # stato: in-corso
-    source_id="f1a2b3c4-..."
 )
 ```
 
@@ -88,12 +79,15 @@ label:move_source(
 label:list(notebook_id="bc8dfeee-c3f0-412d-aa88-f8e0a4025fa5")
 ```
 
-Verifica che il nuovo source_id compaia sotto le 2 label scelte.
+Controllo:
+- Il nuovo source_id compare sotto la label scelta
+- Il `source_count` notebook è cresciuto di 1
+- La somma dei source_ids in tutte le label = nuovo source_count (no fantasmi)
 
 ### Passo 8 — Aggiorna nota di onboarding
 
-Se la nuova fonte è significativa (non un duplicato concettuale), aggiungerla
-alla mappa nella nota di onboarding:
+Se la nuova fonte è significativa (non un duplicato concettuale), aggiungila
+alla mappa nella nota:
 
 ```python
 note:update(
