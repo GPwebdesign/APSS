@@ -3,6 +3,16 @@
 
 ---
 
+## Sessione 15 Maggio 2026
+- TOF CH4 risolto: sensore originale difettoso sostituito con scorta — tutti e 3 i TOF verificati OK (0x29)
+- Libreria `adafruit-circuitpython-vl53l1x` v1.2.9 installata su hawk — approccio smbus2+busio.I2C verificato su tutti i canali
+- `APSS_Documentazione_Tecnica_v2_3.docx` generata — struttura v1.9 ripristinata, sezione 11.1 Sviluppo Futuro inclusa
+- Cartella `Siti Web Rino` rimossa erroneamente da `D:\_claudecodeproject\APSS\` — rimossa manualmente
+- Repo allineati: APSS commit `b1a1f19`, rosmaster_project e ros2_py_ws aggiornati
+- Prossimo step: `tof_node.py`
+
+---
+
 ## Sessione 10 Maggio 2026
 - `apss-lidar-standby.service` installato e abilitato su hawk — utente `hawk` aggiunto a gruppo `dialout`
 - `apss_lidar_standby.py`: script stop motore RPLIDAR al boot (CMD_STOP + CMD_MOTOR) — ⚠️ motore riparte ancora, delay 3s + retry in test
