@@ -15,6 +15,7 @@ Subscribers:
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+from sensor_msgs.msg import BatteryState
 import json
 import socket
 import threading
@@ -83,6 +84,8 @@ class OledNode(Node):
                                  self._mode_cb, 10)
         self.create_subscription(String, '/apss/battery',
                                  self._battery_cb, 10)
+        self.create_subscription(BatteryState, '/battery',
+                                 self._battery_state_cb, 10)
         self.create_subscription(String, '/apss/sensors/env',
                                  self._env_cb, 10)
 
@@ -97,10 +100,22 @@ class OledNode(Node):
             self._mode = msg.data[:10].upper()
 
     def _battery_cb(self, msg: String):
+        """Callback legacy da /apss/battery (String JSON) — mantenuto per compatibilità."""
         try:
             data = json.loads(msg.data)
             v   = data.get('voltage', 0.0)
             pct = data.get('percent', 0)
+            with self._lock:
+                self._batt_v   = f"{v:.1f}V"
+                self._batt_pct = f"{pct:.0f}%"
+        except Exception:
+            pass
+
+    def _battery_state_cb(self, msg: BatteryState):
+        """Callback da battery_node — sensor_msgs/BatteryState (fonte dati reale INA219)."""
+        try:
+            v   = msg.voltage
+            pct = msg.percentage * 100.0   # BatteryState: 0.0–1.0 → percentuale
             with self._lock:
                 self._batt_v   = f"{v:.1f}V"
                 self._batt_pct = f"{pct:.0f}%"
