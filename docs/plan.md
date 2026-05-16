@@ -171,7 +171,8 @@
 
 | Item | Priorità | Note |
 |------|----------|------|
-| ⚠️ Reinstallare `ros-humble-rplidar-ros` su hawk | Alta | Pacchetto mancante — `/scan` e `apss_lidar.launch.py` bloccati finché assente |
+| ⚠️ RPLIDAR A1M8 non comunica | Alta | Driver `rplidar_ros` 2.1.4 va in `SL_RESULT_OPERATION_TIMEOUT`. Test Python diretto: 0 bytes. Motore gira ma lidar non risponde al protocollo. Da debugare — ipotesi cavetto interno o firmware zombie |
+| Reinstallare `ros-humble-slam-toolbox` su hawk | Media | Mancante post-restore SD — da reinstallare quando lidar funziona |
 | Backup su USB disk via SMB | Media | \\iliadbox_Server\iliadbox — utente Rino — cifs-utils da installare su hawk |
 | Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |
 | Bug intermittente `[ODOM] publisher's context is invalid` | Bassa | Cosmetico, sparisce su run lunghi — pre-esistente al fix USB |

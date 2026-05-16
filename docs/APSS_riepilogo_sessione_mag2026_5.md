@@ -40,10 +40,11 @@ funzionante. Topic deprioritizzato dopo il fix USB.
 
 | # | Problema | Severità |
 |---|---|---|
-| 1 | Pacchetto `ros-humble-rplidar-ros` MANCANTE su hawk — `/scan` e launch bloccati | Alta |
-| 2 | `[ODOM] publisher's context is invalid` intermittente (pre-esistente, cosmetico) | Bassa |
-| 3 | Video MainScreen non parte al primo `on_enter` (workaround Home→Camera→Home) | Bassa |
-| 4 | Log rumore `Camera Init Error!` per `/dev/camera_usb` (handler legacy Yahboom) | Bassa |
+| 1 | `ros-humble-rplidar-ros` reinstallato MA driver va in `SL_RESULT_OPERATION_TIMEOUT` — test Python `0xA5 0x50` GET_INFO restituisce 0 bytes. Motore gira, symlink OK, lidar non risponde al protocollo. Da debugare. | Alta |
+| 2 | `ros-humble-slam-toolbox` mancante post-restore SD — da reinstallare | Media |
+| 3 | `[ODOM] publisher's context is invalid` intermittente (pre-esistente, cosmetico) | Bassa |
+| 4 | Video MainScreen non parte al primo `on_enter` (workaround Home→Camera→Home) | Bassa |
+| 5 | Log rumore `Camera Init Error!` per `/dev/camera_usb` (handler legacy Yahboom) | Bassa |
 
 ### ⚠️ Persistenza patch libreria
 Se `Rosmaster_Lib` viene reinstallata via apt/pip (dist-upgrade, reset Ubuntu, ecc.),
@@ -52,6 +53,18 @@ la patch riga 20 va riapplicata manualmente. Backup conservato in `.bak-APSS`.
 ---
 
 ## Sessioni precedenti (sintesi cumulativa)
+
+### Aggiornamento pomeriggio 16 Maggio 2026 — RPLIDAR debug
+
+Dopo il fix USB e l'installazione di `ros-humble-rplidar-ros` 2.1.4 (build 20260423):
+
+- Lancio `apss_lidar.launch.py` → fallisce per `slam_toolbox not found` (anche slam_toolbox mancante post-restore SD)
+- Lancio diretto `rplidar_a1_launch.py` con `serial_port:=/dev/rplidar` → `SL_RESULT_OPERATION_TIMEOUT` dopo `SDK Version: 2.0.0`
+- Lancio diretto `ros2 run rplidar_ros rplidar_node` con tutti i parametri espliciti → stesso timeout
+- Power cycle completo del robot → stesso timeout
+- Test Python bare-metal (`0xA5 0x50` GET_INFO + `read(27)`) → **0 bytes ricevuti**
+
+Conferma: il lidar fisicamente gira ma NON risponde al protocollo nativo Slamtec. Il driver ROS2 non è colpevole — il problema è hardware/firmware del lidar stesso. Sessione chiusa con problema catalogato per debug dedicato.
 
 ### Completati nelle sessioni #3 e #4
 - ✅ Rimozione OpenCV obstacle avoidance + `thread_image_publisher` da `rosmaster_main.py`
@@ -92,20 +105,22 @@ USB: Yahboom CH340 → `/dev/yahboom`, RPLIDAR CP2102 → `/dev/rplidar` (symlin
 
 ## Roadmap — Prossimi step (in ordine)
 
-1. ⚠️ **Reinstallare `ros-humble-rplidar-ros`** — bloccante per `/scan` e launch ROS2
-2. `battery_node` + `oled_node` aggiunti ad `apss_lidar.launch.py`
-3. Test integrato: battery_node → `/battery` → oled_node → display
-4. `tof_node.py` — legge CH2/CH3/CH4 via TCA9548A, pubblica `/tof/front|left|right`
-5. `avoidance_node.py` — soglie 50cm (slow) / 40cm (pivot)
-6. `rosmaster_main.py` subscriber `/cmd_vel`
-7. Test APK Android su Samsung S23 Ultra
-8. Batteria LiFePO4 Fase D — fusibile T3A, CC 2A, tabella SoC LiFePO4, soglie ESP32 definitive
+1. ⚠️ **Debug RPLIDAR non comunicante** — verificare cavetto interno testa↔PCB, provare reset firmware se possibile, test su altro Pi/PC come ulteriore isolamento
+2. **Reinstallare `ros-humble-slam-toolbox`** — quando lidar torna a comunicare
+3. `battery_node` + `oled_node` aggiunti ad `apss_lidar.launch.py`
+4. Test integrato: battery_node → `/battery` → oled_node → display
+5. `tof_node.py` — legge CH2/CH3/CH4 via TCA9548A, pubblica `/tof/front|left|right`
+6. `avoidance_node.py` — soglie 50cm (slow) / 40cm (pivot)
+7. `rosmaster_main.py` subscriber `/cmd_vel`
+8. Test APK Android su Samsung S23 Ultra
+9. Batteria LiFePO4 Fase D — fusibile T3A, CC 2A, tabella SoC LiFePO4, soglie ESP32 definitive
 
 ## Pending items
 
 | Item | Priorità | Note |
 |------|----------|------|
-| Reinstallare `ros-humble-rplidar-ros` | Alta | `/scan` e launch bloccati finché assente |
+| Debug RPLIDAR non comunicante | Alta | Driver OK, lidar non risponde — ipotesi cavetto interno o firmware zombie |
+| Reinstallare `ros-humble-slam-toolbox` | Alta | Mancante post-restore SD — dipendenza per SLAM |
 | Batteria LiFePO4 Fase D | Alta | Fusibile T3A + CC 2A + soglie XHM603 definitive |
 | Test APK Android | Media | Samsung S23 Ultra — APK debug 2.1 già generato |
 | Backup su USB disk via SMB | Media | `\\iliadbox_Server\iliadbox` — cifs-utils da installare |
