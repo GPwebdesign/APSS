@@ -26,7 +26,7 @@
 | Ruote | 4x motori DC encoder Mecanum | M1=ant.sx, M2=ant.dx, M3=post.sx, M4=post.dx |
 | Camera | Arducam OV5647 CSI IR-cut | Focus fisso 0–1.5m, IR-cut via LDR |
 | Pan/Tilt | 2x servo PWM | S1=Tilt, S2=Pan (swap fisico) — home: Pan=100°, Tilt=85° |
-| LiDAR | RPLIDAR A1M8 | `/dev/ttyUSB1`, offset 90°, ~7.7Hz |
+| LiDAR | RPLIDAR A1M8 | `/dev/rplidar` (symlink udev) — offset 90°, ~7.7Hz |
 | Batteria | ECO-WORTHY LiFePO4 12.8V 8Ah | Sostituisce Yuasa YTZ10S AGM — installazione in corso |
 | Monitor alimentazione | INA219 0x40 | In serie al positivo — shunt R100 — libreria adafruit |
 | OLED | SSD1306 0x3C | Operativo via `oled_node.py` |
@@ -118,7 +118,57 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 
 | Service | File | Stato | Funzione |
 |---------|------|-------|----------|
-| `apss-lidar-standby.service` | `rosmaster_project/apss_lidar_standby.py` | ✅ Installato/abilitato | Stop motore RPLIDAR al boot — ⚠️ delay init firmware da risolvere |
+| `apss-lidar-standby.service` | `rosmaster_project/apss_lidar_standby.py` | ⛔ Disabled (topic aperto) | Stop motore RPLIDAR al boot — non ha mai effettivamente fermato il motore |
+
+---
+
+## USB device naming (Maggio 2026)
+
+La scheda Yahboom (chip CH340 `1a86:7523`) e il RPLIDAR A1M8 (chip CP2102 `10c4:ea60`) sono entrambi collegati via USB. L'ordine `ttyUSB0` / `ttyUSB1` assegnato al boot dal kernel non è deterministico, quindi sono necessari nomi stabili.
+
+### Regole udev
+
+File: `/etc/udev/rules.d/99-apss-usb.rules`
+
+```
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="yahboom", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="rplidar", GROUP="dialout", MODE="0660"
+```
+
+Dopo l'installazione/modifica del file:
+
+```bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger --action=add --subsystem-match=tty
+```
+
+### Symlink risultanti (stabili)
+
+| Symlink | Punta a | Usato da |
+|---------|---------|---------|
+| `/dev/yahboom` | CH340 Yahboom — `ttyUSB0` o `ttyUSB1` a seconda del boot | `Rosmaster_Lib` (patchato) |
+| `/dev/rplidar` | CP2102 RPLIDAR — `ttyUSB0` o `ttyUSB1` a seconda del boot | `rplidar_ros` (via launch file) |
+
+### Patch libreria Yahboom
+
+La libreria `Rosmaster_Lib` ha un bug noto: il parametro `com` del costruttore è ignorato e la porta `/dev/ttyUSB0` è hardcoded a riga 20. Patch applicata in:
+
+`/usr/lib/python3.10/Rosmaster_Lib/Rosmaster_Lib.py`
+
+```python
+# Riga 20 — prima:
+self.ser = serial.Serial('/dev/ttyUSB0', 115200)
+# Riga 20 — dopo (apre il symlink stabile):
+self.ser = serial.Serial('/dev/yahboom', 115200)
+```
+
+Backup originale conservato in `Rosmaster_Lib.py.bak-APSS`.
+
+> ⚠️ **Persistenza**: la patch va riapplicata manualmente se la libreria `Rosmaster_Lib` viene reinstallata via apt/pip (es. dopo dist-upgrade o reset Ubuntu).
+
+### Launch file ROS2
+
+`ros2_py_ws/src/udemy_ros2_pkg/launch/apss_lidar.launch.py` configurato con `serial_port: '/dev/rplidar'` (originale `/dev/ttyUSB1`). Backup originale in `.bak-APSS`. Modifica persistente nel repo Git.
 
 ---
 
@@ -162,7 +212,7 @@ Convenzione INA219: corrente positiva = ricarica attiva, negativa = flusso inver
 
 | Schermata | Stato | Funzione |
 |-----------|-------|---------|
-| MainScreen | Operativa | Stream video + pad motori 3x3 |
+| MainScreen | Operativa — ⚠️ video non parte al primo `on_enter` (workaround: Home→Camera→Home) | Stream video + pad motori 3x3 |
 | CameraScreen | Operativa | Stream + pan/tilt |
 | SettingsScreen | Operativa | IP robot, porte TCP/HTTP |
 | PatrolScreen | Placeholder | Pattugliamento autonomo (Fase 5) |

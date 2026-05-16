@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Maggio 2026 — v2.4  
+> Aggiornato: Maggio 2026 — v2.5  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -74,10 +74,19 @@
 - [x] `.gitignore` popolato
 
 ### Boot e servizi systemd (Maggio 2026)
-- [x] `apss_lidar_standby.py` — script stop motore RPLIDAR al boot
-- [x] `apss-lidar-standby.service` — systemd installato e abilitato su hawk
+- [x] `apss_lidar_standby.py` — script presente (CMD_STOP + CMD_MOTOR RPLIDAR)
+- [~] `apss-lidar-standby.service` — file unit creato ma `disabled`, mai effettivamente eseguito al boot
 - [x] Utente `hawk` aggiunto al gruppo `dialout`
-- [ ] Fix RPLIDAR standby — motore riparte dopo boot (delay init firmware)
+- [ ] Fix RPLIDAR standby — il service non ha mai fermato il motore (topic aperto, deprioritizzato dopo fix USB)
+
+### Fix USB enumeration non deterministica (Maggio 2026)
+- [x] Diagnosi: ordine `ttyUSB0/ttyUSB1` non deterministico al boot — Yahboom (CH340) e RPLIDAR (CP2102) competono per `ttyUSB0`
+- [x] Sintomo: quando RPLIDAR prende `ttyUSB0`, `rosmaster_main.py` apre il dispositivo sbagliato → `Version: -1`, beep silenziosi, motore RPLIDAR fermo (side-effect DTR su CP2102)
+- [x] Regole udev `/etc/udev/rules.d/99-apss-usb.rules` — symlink stabili `/dev/yahboom` (CH340 1a86:7523) e `/dev/rplidar` (CP2102 10c4:ea60)
+- [x] Patch libreria `/usr/lib/python3.10/Rosmaster_Lib/Rosmaster_Lib.py` riga 20 — apre `/dev/yahboom` invece di `/dev/ttyUSB0` hardcoded (backup `.bak-APSS`)
+- [x] Launch file `apss_lidar.launch.py` — parametro `serial_port: /dev/rplidar` (backup `.bak-APSS`)
+- [x] Test post-reboot verificato: enumeration "invertita" (Yahboom→ttyUSB1, RPLIDAR→ttyUSB0) e `rosmaster_main.py` parte correttamente con `Version: 3.5`
+- [ ] ⚠️ Riapplicare patch libreria se `Rosmaster_Lib` viene reinstallata via apt/pip
 
 ### App Kivy Android (Maggio 2026)
 - [x] VM Buildozer configurata (Ubuntu 24.04, venv-buildozer, Buildozer 1.5.0)
@@ -162,8 +171,12 @@
 
 | Item | Priorità | Note |
 |------|----------|------|
+| ⚠️ Reinstallare `ros-humble-rplidar-ros` su hawk | Alta | Pacchetto mancante — `/scan` e `apss_lidar.launch.py` bloccati finché assente |
 | Backup su USB disk via SMB | Media | \\iliadbox_Server\iliadbox — utente Rino — cifs-utils da installare su hawk |
 | Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |
+| Bug intermittente `[ODOM] publisher's context is invalid` | Bassa | Cosmetico, sparisce su run lunghi — pre-esistente al fix USB |
+| Bug Video MainScreen al primo `on_enter` | Bassa | Workaround Home→Camera→Home — pre-esistente, UX minore |
+| Log rumore `Camera Init Error!` per `/dev/camera_usb` | Bassa | Handler legacy Yahboom, non funzionale — pre-esistente |
 | Ripristino aggiornamenti ROS2 Humble su hawk | Bassa | Dopo hold config completa su entrambi i sistemi |
 
 ---
