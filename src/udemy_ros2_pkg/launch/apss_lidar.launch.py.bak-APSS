@@ -2,7 +2,7 @@
 """
 APSS — Launch file LiDAR + robot_state_publisher
 Avvia:
-  - Driver RPLIDAR A1M8 su /dev/rplidar
+  - Driver RPLIDAR A1M8 su /dev/ttyUSB1
   - robot_state_publisher con URDF apss_robot
   - tf statico map → odom → base_footprint
 """
@@ -32,7 +32,7 @@ def generate_launch_description():
             executable='rplidar_composition',
             name='rplidar',
             parameters=[{
-                'serial_port': '/dev/rplidar',
+                'serial_port': '/dev/ttyUSB1',
                 'serial_baudrate': 115200,
                 'frame_id': 'laser',
                 'angle_compensate': True,
