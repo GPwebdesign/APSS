@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Maggio 2026 — v2.5  
+> Aggiornato: Maggio 2026 — v2.6  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -11,11 +11,11 @@
 - [x] Progettazione architettura sistema
 - [x] Circuito ricarica XL4016 + XHM603 calibrato e verificato
 - [x] Firmware ESP32 MicroPython v2.0 — dashboard operativa
-- [x] RPLIDAR A1M8 — driver installato, topic `/scan` attivo ~7.7Hz
+- [x] RPLIDAR A1M8 — driver `ros-humble-rplidar-ros` reinstallato post-restore SD (Mag 2026)
 - [x] URDF robot (`apss_robot.urdf.xml`) + TF tree completo
-- [x] Launch file `apss_lidar.launch.py` — RPLIDAR + slam_toolbox + RViz2
+- [x] Launch file `apss_lidar.launch.py` — RPLIDAR + robot_state_publisher + slam_toolbox + RViz2 (slam_toolbox da reinstallare post-restore SD)
 - [x] Odometria encoder in `rosmaster_main.py` (`thread_odom`) — ENCODER_CPR=822
-- [x] OLED SSD1306 operativo (`oled_node.py`)
+- [x] OLED SSD1306 — `oled_node.py` autonomo, layout APSS / IP / V grande con asterisco / A W, fallback INA219 diretto (Mag 2026)
 
 ### App Kivy
 - [x] Controllo motori Mecanum custom (formula verificata fisicamente)
@@ -94,15 +94,33 @@
 - [x] APK debug 2.1 generato — `apssystem-2.1-arm64-v8a_armeabi-v7a-debug.apk`
 - [ ] Test APK su Samsung S23 Ultra
 
+### Display OLED autonomo (Maggio 2026)
+- [x] `oled_node.py` riadattato — autonomo al boot, fallback INA219 diretto, watchdog `/battery` 5s
+- [x] Layout nuovo: header `APSS` / IP centrato / V grande con `*` se lettura diretta INA219 / A W piccoli
+- [x] `luma.oled` 3.15.0 reinstallato via pip (era andato perso post-restore SD)
+- [x] Test funzionante — display mostra dati corretti con asterisco quando `battery_node` non gira
+- [ ] Service systemd `apss-oled.service` per avvio al boot
+- [ ] Test asterisco scompare quando `battery_node` parte
+
+### Catena alimentazione + soglie ricarica (Maggio 2026)
+- [x] Catena misurata: ECO-WORTHY 13.09V → DD32AJ4B (setpoint 12.16V a vuoto / 11.70V sotto carico) → INA219 0x40 → Yahboom
+- [x] Setpoint trimmer confermato a 12.16V (1.3% sopra spec Yahboom max 12V, marginalmente tollerato)
+- [x] Load regulation DD32AJ4B caratterizzata: ~0.46V caduta @ 0.6A
+- [x] Caduta shunt INA219 caratterizzata: 60 mV @ 0.6A, 200 mV @ 2A
+- [x] **3 soglie ricarica Fase 1 (voltage based) definite**: 🟡 LOW 11.50V (~30% SoC) / 🟠 CRITICAL 11.20V (~15% SoC) / 🔴 EMERGENCY 10.80V (~5% SoC)
+- [ ] Fase 2 ricarica: `battery_node` registra V/I/t durante uso operativo per costruire tabella SoC LiFePO4 empirica
+- [ ] Fase 2 ricarica: migrazione soglie da voltage a `BatteryState.percentage`
+
 ---
 
 ## 🔄 IN CORSO / PROSSIMI
 
 ### Fase 0 — Integrazione nodi ROS2 base (IN CORSO)
-- [ ] Fix RPLIDAR standby al boot (script delay + retry)
-- [x] `oled_node.py` — subscriber `/battery` (BatteryState) per dati reali INA219 ✅
+- [ ] Fix RPLIDAR standby al boot (script delay + retry) — deprioritizzato dopo fix USB
+- [x] `oled_node.py` — subscriber `/battery` (BatteryState) + fallback INA219 ✅
 - [ ] `battery_node` + `oled_node` aggiunti ad `apss_lidar.launch.py`
-- [ ] Test integrato: battery_node → /battery → oled_node → display
+- [ ] Service systemd `apss-oled.service` per avvio al boot
+- [ ] Test integrato: battery_node → `/battery` → oled_node → display (asterisco scompare)
 
 ### Fase 1 — TOF400C VL53L1X (obstacle avoidance software)
 - [x] Fix TOF destro CH4 — sensore sostituito, tutti e 3 verificati OK (0x29)
@@ -133,6 +151,7 @@
 ### Fase 5 — Pattugliamento autonomo
 - [ ] Definizione waypoint pattugliamento in mappa
 - [ ] Nodo `patrol_node.py` — gestione ciclo waypoint
+- [ ] **Logica trigger ricarica autonoma**: subscriber `/battery` con 3 soglie (LOW/CRITICAL/EMERGENCY) come definito in `architecture.md`
 - [ ] PatrolScreen app — avvio/stop/stato pattugliamento
 - [ ] Integrazione rilevamento movimento (camera)
 
@@ -171,8 +190,11 @@
 
 | Item | Priorità | Note |
 |------|----------|------|
-| ⚠️ RPLIDAR A1M8 non comunica | Alta | Driver `rplidar_ros` 2.1.4 va in `SL_RESULT_OPERATION_TIMEOUT`. Test Python diretto: 0 bytes. Motore gira ma lidar non risponde al protocollo. Da debugare — ipotesi cavetto interno o firmware zombie |
-| Reinstallare `ros-humble-slam-toolbox` su hawk | Media | Mancante post-restore SD — da reinstallare quando lidar funziona |
+| ⚠️ RPLIDAR A1M8 in reso — in attesa di sostituto | Alta | Reso autorizzato dopo diagnosi HW (linea TX morta). Quando arriva il sostituto: test Python protocollo + lancio driver ROS2 |
+| Reinstallare `ros-humble-slam-toolbox` su hawk | Alta | Mancante post-restore SD — reinstallare prima della prima sessione SLAM |
+| Verificare altri pacchetti pip persi post-restore SD | Media | `luma.oled` era andato perso e ricomparso solo oggi. Verificare proattivamente `adafruit-circuitpython-*`, `picamera2`, ecc. prima di scoprirli mancanti |
+| Service systemd `apss-oled.service` | Media | Avvio OLED al boot, prima di `rosmaster_main.py` |
+| `battery_node` nel launch file | Media | Aggiungere ad `apss_lidar.launch.py` per avvio integrato |
 | Backup su USB disk via SMB | Media | \\iliadbox_Server\iliadbox — utente Rino — cifs-utils da installare su hawk |
 | Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |
 | Bug intermittente `[ODOM] publisher's context is invalid` | Bassa | Cosmetico, sparisce su run lunghi — pre-esistente al fix USB |
