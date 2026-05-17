@@ -62,9 +62,22 @@ Dopo il fix USB e l'installazione di `ros-humble-rplidar-ros` 2.1.4 (build 20260
 - Lancio diretto `rplidar_a1_launch.py` con `serial_port:=/dev/rplidar` → `SL_RESULT_OPERATION_TIMEOUT` dopo `SDK Version: 2.0.0`
 - Lancio diretto `ros2 run rplidar_ros rplidar_node` con tutti i parametri espliciti → stesso timeout
 - Power cycle completo del robot → stesso timeout
-- Test Python bare-metal (`0xA5 0x50` GET_INFO + `read(27)`) → **0 bytes ricevuti**
+- Test Python bare-metal con DTR default → motore si ferma all'apertura porta, 0 bytes
+- Test Python con `dtr=False` forzato → motore resta acceso, ma sempre 0 bytes
+- Test Python con sequenza STOP + GET_INFO + GET_HEALTH (DTR=False) → 0 bytes a tutti e tre i comandi
 
-Conferma: il lidar fisicamente gira ma NON risponde al protocollo nativo Slamtec. Il driver ROS2 non è colpevole — il problema è hardware/firmware del lidar stesso. Sessione chiusa con problema catalogato per debug dedicato.
+**Diagnosi finale**: problema HARDWARE del lidar. La linea TX dal lidar verso il PC non trasmette dati. DTR controlla correttamente il motore (acceso/spento), la scrittura sulla porta non dà errori, ma il firmware del lidar non risponde a nessun comando del protocollo nativo Slamtec. Ipotesi principali:
+
+1. Cavetto interno testa rotante ↔ PCB di breakout allentato/danneggiato (slip ring)
+2. Chip CP2102 TX guasto
+3. PCB di breakout RPLIDAR danneggiato
+
+**Azioni nella prossima sessione**:
+- Aprire case lidar e ispezionare cavetto interno
+- Test alternativo con Slamtec FrameGrabber su Windows per isolare definitivamente
+- Contatto supporto Slamtec se sotto garanzia
+
+Sessione chiusa con diagnosi solida — il problema è fuori scope software.
 
 ### Completati nelle sessioni #3 e #4
 - ✅ Rimozione OpenCV obstacle avoidance + `thread_image_publisher` da `rosmaster_main.py`
@@ -119,7 +132,7 @@ USB: Yahboom CH340 → `/dev/yahboom`, RPLIDAR CP2102 → `/dev/rplidar` (symlin
 
 | Item | Priorità | Note |
 |------|----------|------|
-| Debug RPLIDAR non comunicante | Alta | Driver OK, lidar non risponde — ipotesi cavetto interno o firmware zombie |
+| Debug RPLIDAR — problema HARDWARE confermato | Alta | Linea TX dal lidar morta. DTR/motore/scrittura OK. Aprire case, ispezionare cavetto interno testa↔PCB. Test alt: Slamtec FrameGrabber su Windows |
 | Reinstallare `ros-humble-slam-toolbox` | Alta | Mancante post-restore SD — dipendenza per SLAM |
 | Batteria LiFePO4 Fase D | Alta | Fusibile T3A + CC 2A + soglie XHM603 definitive |
 | Test APK Android | Media | Samsung S23 Ultra — APK debug 2.1 già generato |

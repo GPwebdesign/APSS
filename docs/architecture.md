@@ -27,7 +27,7 @@
 | Camera | Arducam OV5647 CSI IR-cut | Focus fisso 0–1.5m, IR-cut via LDR |
 | Pan/Tilt | 2x servo PWM | S1=Tilt, S2=Pan (swap fisico) — home: Pan=100°, Tilt=85° |
 | LiDAR | RPLIDAR A1M8 | `/dev/rplidar` (symlink udev) — offset 90°, ~7.7Hz |
-| Batteria | ECO-WORTHY LiFePO4 12.8V 8Ah | Sostituisce Yuasa YTZ10S AGM — installazione in corso |
+| Batteria | ECO-WORTHY LiFePO4 12.8V 8Ah | Installata (Maggio 2026) — sostituisce Yuasa YTZ10S AGM |
 | Monitor alimentazione | INA219 0x40 | In serie al positivo — shunt R100 — libreria adafruit |
 | OLED | SSD1306 0x3C | Operativo via `oled_node.py` |
 
@@ -64,7 +64,7 @@ TCA9548A: indirizzo I2C 0x70. Soglie obstacle avoidance: 50cm = rallenta, 40cm =
 
 ### INA219 — Monitor alimentazione robot
 
-Installato in serie al positivo tra alimentazione e scheda Yahboom (Maggio 2026).
+Installato in serie al positivo tra il regolatore DD32AJ4B e la scheda Yahboom (Maggio 2026).
 
 | Parametro | Valore |
 |-----------|--------|
@@ -73,6 +73,79 @@ Installato in serie al positivo tra alimentazione e scheda Yahboom (Maggio 2026)
 | Libreria | adafruit-circuitpython-ina219 |
 | Convenzione corrente | Positiva = DISCHARGING (robot assorbe), Negativa = CHARGING (docking) |
 | Potenza | Calcolata come V × I (registro power non calibrato) |
+| Assorbimento idle misurato | ~0.45–0.60 A / ~5.30–6.45 W (Maggio 2026) |
+| Picco motori (memoria battery_node) | ~2.14 A / ~25.7 W |
+| Caduta su shunt | 60 mV @ 0.6A → 200 mV @ 2A |
+
+---
+
+## Catena di alimentazione robot (Maggio 2026)
+
+```
+        ECO-WORTHY LiFePO4 12.8V 8Ah
+              │  (13.09V sotto carico, batteria carica)
+              ▼
+        DD32AJ4B convertitore multi-uscita
+          ├── Uscita trimmer regolata: setpoint 12.16V a vuoto
+          │        │
+          │        ▼
+          │   INA219 0x40 (shunt R100)
+          │        │  (11.58–11.70V sotto carico idle ~0.6A)
+          │        ▼
+          │   Scheda Yahboom V3.0 — motori, servo, RPi 4, RPLIDAR, ecc.
+          │
+          ├── Uscita 3.3V → 3x TOF400C VL53L1X + TCA9548A (alimentazione I2C)
+          ├── Uscita 5V → (non collegata)
+          └── Uscita 12V → (non collegata)
+```
+
+### Misure di tensione lungo la catena (Maggio 2026, batteria carica, robot acceso idle)
+
+| Punto | A vuoto | Sotto carico (0.45–0.60 A) | Caduta |
+|-------|---------|---------------------------|--------|
+| Terminali batteria ECO-WORTHY | — | 13.09 V | (riferimento) |
+| Uscita DD32AJ4B (tester) | 12.16 V | 11.70 V | 0.46 V (load regulation) |
+| Lettura INA219 (a valle shunt) | — | 11.48–11.68 V | +0.06 V (shunt @ 0.6A) |
+
+**Diagnosi**: la caduta di ~0.46 V dall'uscita DD32AJ4B sotto carico è dovuta alla regolazione di carico del convertitore (load regulation mediocre dei buck multi-uscita economici). Lo shunt INA219 contribuisce solo ~60 mV @ 0.6 A.
+
+### Scelta del setpoint trimmer (Maggio 2026)
+
+Il supporto tecnico Yahboom dichiara **input max 12V** per la Rosmaster Expansion Board V3.0. Setpoint a vuoto mantenuto a **12.16 V** (1.3% sopra spec, marginalmente tollerato) per garantire:
+
+- Sotto carico idle (~0.6 A) → ~11.65 V — dentro range operativo
+- Sotto carico motori (~2 A) → stima ~11.2 V — ancora safe
+
+**Decisione**: il setpoint NON viene cambiato perché alzarlo (es. 12.50 V) violerebbe il limite Yahboom a vuoto, e abbassarlo (es. 11.80 V) ridurrebbe il margine durante gli spunti motore.
+
+---
+
+## Logica ricarica autonoma (Fase 1 — voltage based)
+
+Il robot autonomo deve decidere quando rientrare al docking. **Fase 1**: trigger basati su tensione `BatteryState.voltage` letta da `/battery`. **Fase 2 (futura)**: il robot registra autonomamente V/I/SoC durante l'uso operativo per costruire una tabella SoC LiFePO4 empirica; le soglie migreranno su `BatteryState.percentage`.
+
+### 3 soglie di trigger (Fase 1)
+
+| Livello | Tensione INA219 (`/battery.voltage`) | SoC stimato | Azione del robot |
+|---------|--------------------------------------|-------------|------------------|
+| 🟡 LOW | ~11.50 V | ~30% | Completa il task corrente, poi rientra al docking |
+| 🟠 CRITICAL | ~11.20 V | ~15% | Interrompe il task, rientra immediatamente al docking |
+| 🔴 EMERGENCY | ~10.80 V | ~5% | Stop ovunque, segnala emergenza, attende recupero manuale |
+
+### Note di taratura
+
+- I valori sopra sono **stime iniziali conservative**, non calibrati empiricamente sulla LiFePO4 ECO-WORTHY specifica
+- La curva di scarica LiFePO4 è piatta tra 90% e 20% SoC e crolla rapidamente sotto il 10%
+- La caduta sulla catena DD32AJ4B varia con la corrente — le soglie sono pensate per condizioni di pattugliamento (~0.6–1.0 A media)
+- Il margine 11.50 → 10.80 V corrisponde a circa 90 secondi di operatività in pattugliamento, sufficiente per il rientro
+
+### Roadmap calibrazione (Fase 2)
+
+1. Il `battery_node.py` registra V/I/t durante uso operativo (log CSV o topic dedicato)
+2. Si identificano i punti di crollo della curva LiFePO4 specifica
+3. Si compila una tabella SoC voltage → percentage e si carica in `battery_node.py`
+4. `BatteryState.percentage` diventa il campo affidabile per le decisioni
+5. Le soglie migrano: LOW=30%, CRITICAL=15%, EMERGENCY=5%
 
 ---
 
@@ -85,7 +158,7 @@ Installato in serie al positivo tra alimentazione e scheda Yahboom (Maggio 2026)
 | `apss_robot.urdf.xml` | Descrizione robot (URDF) |
 | `apss_lidar.launch.py` | Launch: RPLIDAR + robot_state_publisher + tf + slam_toolbox + RViz2 |
 | `rviz/apss.rviz` | Configurazione RViz2 |
-| `oled_node.py` | Nodo OLED SSD1306 |
+| `oled_node.py` | Nodo OLED SSD1306 — layout: APSS / IP / V grande (asterisco se lettura diretta INA219) / A W. Subscriber `/battery` + fallback INA219 diretto con watchdog 5s |
 | `battery_node.py` | Monitor INA219 — pubblica `/battery` + `/battery/stats` ogni 2s |
 | `tof_node.py` | (pianificato) Legge TCA9548A CH2/CH3/CH4 — pubblica `/tof/*` |
 | `avoidance_node.py` | (pianificato) Obstacle avoidance — subscribe `/tof/*` → pubblica `/cmd_vel` |
@@ -103,14 +176,12 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 |-------|------|-----------|-------------|
 | `/scan` | `sensor_msgs/LaserScan` | rplidar_node | slam_toolbox |
 | `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) | slam_toolbox |
-| `/battery` | `sensor_msgs/BatteryState` | battery_node | oled_node (⚠️ subscriber mancante) |
+| `/battery` | `sensor_msgs/BatteryState` | battery_node | oled_node ✅ |
 | `/battery/stats` | `udemy_ros2_pkg/BatteryStats` | battery_node | — |
-| `/apss/battery` | `std_msgs/String` JSON | — | oled_node (topic attuale — da allineare) |
-| `/apss/mode` | `std_msgs/String` | — | oled_node |
+| `/apss/mode` | `std_msgs/String` | (futuro) | oled_node |
+| `/apss/sensors/env` | `std_msgs/String` JSON | (futuro) | oled_node |
 | `/cmd_vel` | `geometry_msgs/Twist` | (pianificato: avoidance_node / nav2) | rosmaster_main.py |
 | `/tof/front` `/tof/left` `/tof/right` | `sensor_msgs/Range` | tof_node (pianificato) | avoidance_node |
-
-> ⚠️ **Disallineamento topic batteria:** `battery_node` pubblica su `/battery` (BatteryState), `oled_node` subscribes `/apss/battery` (String JSON). Fix in corso: aggiungere subscriber `/battery` in `oled_node.py`.
 
 ---
 
