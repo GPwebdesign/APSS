@@ -4,13 +4,13 @@
 APSS — OLED Display Node
 Mostra su display SSD1306 128x64 I2C:
   - Nome sistema + IP
-  - Stato batteria
-  - Modalita operativa
-  - Sensori ambientali (DHT-11, gas)
+  - Stato batteria (con fallback INA219 diretto se /battery e' stale)
+  - Modalita operativa (riservato a usi futuri)
+  - Sensori ambientali (riservato a usi futuri)
 Subscribers:
-  /apss/mode    (std_msgs/String)
-  /apss/battery (std_msgs/String — JSON)
+  /apss/mode        (std_msgs/String)
   /apss/sensors/env (std_msgs/String — JSON)
+  /battery          (sensor_msgs/BatteryState)
 """
 import rclpy
 from rclpy.node import Node
@@ -30,6 +30,13 @@ try:
 except ImportError:
     OLED_AVAILABLE = False
 
+try:
+    import board
+    import adafruit_ina219
+    INA219_LIB_AVAILABLE = True
+except ImportError:
+    INA219_LIB_AVAILABLE = False
+
 
 def get_ip():
     try:
@@ -48,14 +55,17 @@ class OledNode(Node):
         super().__init__('oled_node')
 
         # Stato display
-        self._ip      = get_ip()
-        self._mode    = "STANDBY"
-        self._batt_v  = "--.-V"
-        self._batt_pct= "--%"
-        self._temp    = "--"
-        self._hum     = "--"
-        self._gas     = "--"
-        self._lock    = threading.Lock()
+        self._ip               = get_ip()
+        self._mode             = "STANDBY"
+        self._batt_volts       = None   # float o None
+        self._batt_amps        = None
+        self._batt_watts       = None
+        self._battery_source   = 'none'  # 'ros' | 'direct' | 'none'
+        self._last_battery_msg_ts = 0.0
+        self._temp             = "--"
+        self._hum              = "--"
+        self._gas              = "--"
+        self._lock             = threading.Lock()
 
         # Inizializza display
         if OLED_AVAILABLE:
@@ -67,9 +77,12 @@ class OledNode(Node):
                         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 14)
                     self._font_small = ImageFont.truetype(
                         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 11)
+                    self._font_xl = ImageFont.truetype(
+                        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 18)
                 except Exception:
                     self._font_large = ImageFont.load_default()
                     self._font_small = ImageFont.load_default()
+                    self._font_xl    = ImageFont.load_default()
                 self._oled_ok = True
                 self.get_logger().info('Display OLED SSD1306 inizializzato!')
             except Exception as e:
@@ -79,11 +92,20 @@ class OledNode(Node):
             self._oled_ok = False
             self.get_logger().warn('luma.oled non installato — display disabilitato')
 
+        # Inizializza INA219 diretto (fallback se /battery e' stale)
+        self._ina    = None
+        self._ina_ok = False
+        if INA219_LIB_AVAILABLE:
+            try:
+                self._ina    = adafruit_ina219.INA219(board.I2C())
+                self._ina_ok = True
+                self.get_logger().info('INA219 diretto inizializzato su 0x40')
+            except Exception as e:
+                self.get_logger().warn(f'INA219 diretto non disponibile: {e}')
+
         # Subscribers
         self.create_subscription(String, '/apss/mode',
                                  self._mode_cb, 10)
-        self.create_subscription(String, '/apss/battery',
-                                 self._battery_cb, 10)
         self.create_subscription(BatteryState, '/battery',
                                  self._battery_state_cb, 10)
         self.create_subscription(String, '/apss/sensors/env',
@@ -94,31 +116,39 @@ class OledNode(Node):
 
         self.get_logger().info('OLED Node avviato!')
 
+    # ── Lettura diretta INA219 ────────────────────────────────────────────
+    def _read_ina219_direct(self):
+        """Legge tensione, corrente e potenza direttamente dall'INA219.
+        Ritorna (V, A, W) con corrente positiva = scarica, o None in caso di errore.
+        """
+        if not self._ina_ok:
+            return None
+        try:
+            volts = self._ina.bus_voltage          # V
+            amps  = self._ina.current / 1000.0     # mA → A (positivo = scarica)
+            watts = volts * abs(amps)
+            return (volts, amps, watts)
+        except Exception as e:
+            self.get_logger().warn(f'Errore lettura INA219 diretto: {e}')
+            return None
+
     # ── Callbacks ────────────────────────────────────────────────────────
     def _mode_cb(self, msg: String):
         with self._lock:
             self._mode = msg.data[:10].upper()
 
-    def _battery_cb(self, msg: String):
-        """Callback legacy da /apss/battery (String JSON) — mantenuto per compatibilità."""
-        try:
-            data = json.loads(msg.data)
-            v   = data.get('voltage', 0.0)
-            pct = data.get('percent', 0)
-            with self._lock:
-                self._batt_v   = f"{v:.1f}V"
-                self._batt_pct = f"{pct:.0f}%"
-        except Exception:
-            pass
-
     def _battery_state_cb(self, msg: BatteryState):
         """Callback da battery_node — sensor_msgs/BatteryState (fonte dati reale INA219)."""
         try:
-            v   = msg.voltage
-            pct = msg.percentage * 100.0   # BatteryState: 0.0–1.0 → percentuale
+            volts = msg.voltage
+            # BatteryState ROS2: positivo = carica; invertiamo per positivo = scarica
+            amps  = -msg.current
+            watts = volts * abs(amps)
             with self._lock:
-                self._batt_v   = f"{v:.1f}V"
-                self._batt_pct = f"{pct:.0f}%"
+                self._batt_volts          = volts
+                self._batt_amps           = amps
+                self._batt_watts          = watts
+                self._last_battery_msg_ts = time.monotonic()
         except Exception:
             pass
 
@@ -137,34 +167,56 @@ class OledNode(Node):
             return
         with self._lock:
             ip      = self._ip
-            mode    = self._mode
-            batt_v  = self._batt_v
-            batt_pct= self._batt_pct
-            temp    = self._temp
-            hum     = self._hum
-            gas     = self._gas
+            last_ts = self._last_battery_msg_ts
+            volts   = self._batt_volts
+            amps    = self._batt_amps
+            watts   = self._batt_watts
+
+        # Watchdog 5s su /battery: se stale usa lettura diretta INA219
+        now = time.monotonic()
+        if last_ts > 0.0 and (now - last_ts) <= 5.0:
+            batt_source = 'ros'
+            batt_v, batt_a, batt_w = volts, amps, watts
+        else:
+            direct = self._read_ina219_direct()
+            if direct is not None:
+                batt_source = 'direct'
+                batt_v, batt_a, batt_w = direct
+            else:
+                batt_source = 'none'
+                batt_v = batt_a = batt_w = None
+
+        with self._lock:
+            self._battery_source = batt_source
+
+        # Componi stringhe di visualizzazione
+        if batt_v is not None:
+            prefix   = '*' if batt_source == 'direct' else ''
+            volt_str = f"{prefix}{batt_v:.2f}V"
+        else:
+            volt_str = "--.--V"
+
+        if batt_a is not None and batt_w is not None:
+            curr_str = f"{batt_a:.2f}A  {batt_w:.2f}W"
+        else:
+            curr_str = "--.--A  --.--W"
 
         try:
             with canvas(self._device) as draw:
-                # Riga 1 — "APSS" centrato
+                # Riga 0 — "APSS" centrato (font_large 14) a y=0
                 text_width = draw.textlength("APSS", font=self._font_large)
                 x = (128 - text_width) // 2
                 draw.text((x, 0), "APSS", font=self._font_large, fill="white")
                 # Separatore
                 draw.line([(0, 17), (128, 17)], fill="white", width=1)
-                # Riga 3 — IP centrato
+                # Riga 1 — IP centrato (font_small 11) a y=20
                 text_width = draw.textlength(ip, font=self._font_small)
                 x = (128 - text_width) // 2
                 draw.text((x, 20), ip, font=self._font_small, fill="white")
-                # Riga 4 — modalita
-                draw.text((0, 29), f"Mode:{mode}",
-                          font=self._font_small, fill="white")
-                # Riga 5 — sensori
-                draw.text((0, 41), f"T:{temp}C H:{hum}%",
-                          font=self._font_small, fill="white")
-                # Riga 6 — gas
-                draw.text((0, 52), f"Gas:{gas}",
-                          font=self._font_small, fill="white")
+                # Riga 2 — voltaggio (font_xl 18) a y=33
+                draw.text((0, 33), volt_str, font=self._font_xl, fill="white")
+                # Riga 3 — corrente e potenza (font_small 11) a y=53
+                draw.text((0, 53), curr_str, font=self._font_small, fill="white")
         except Exception as e:
             self.get_logger().warn(f'Errore display: {e}')
 
