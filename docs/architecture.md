@@ -176,8 +176,9 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 |-------|------|-----------|-------------|
 | `/scan` | `sensor_msgs/LaserScan` | rplidar_node | slam_toolbox |
 | `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) | slam_toolbox |
-| `/battery` | `sensor_msgs/BatteryState` | battery_node | oled_node ✅ |
+| `/battery` | `sensor_msgs/BatteryState` | battery_node | oled_node ✅, safety_node (pianificato) |
 | `/battery/stats` | `udemy_ros2_pkg/BatteryStats` | battery_node | — |
+| `/apss/alarm` | `std_msgs/String` | safety_node (pianificato) | (consumer futuri) |
 | `/apss/mode` | `std_msgs/String` | (futuro) | oled_node |
 | `/apss/sensors/env` | `std_msgs/String` JSON | (futuro) | oled_node |
 | `/cmd_vel` | `geometry_msgs/Twist` | (pianificato: avoidance_node / nav2) | rosmaster_main.py |
@@ -190,6 +191,7 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 | Service | File | Stato | Funzione |
 |---------|------|-------|----------|
 | `apss-lidar-standby.service` | `rosmaster_project/apss_lidar_standby.py` | ⛔ Disabled (topic aperto) | Stop motore RPLIDAR al boot — non ha mai effettivamente fermato il motore |
+| `apss-oled.service` | `ros2_py_ws` — `ros2 run <pkg> oled_node` | 🚧 In corso | Avvio OLED al boot, indipendente da launch file — `After=network-online.target`, `Restart=on-failure` |
 
 ---
 

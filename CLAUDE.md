@@ -87,6 +87,13 @@ Per sbloccare solo se necessario:
 dpkg -l | grep "^ii  ros-humble-" | awk '{print $2}' | xargs sudo apt-mark unhold
 ```
 
+### Servizi systemd su hawk
+- `apss-oled.service` — service indipendente, `After=network-online.target`, utente `hawk`
+  - Avvia: `ros2 run <pkg> oled_node`
+  - `Restart=on-failure`, `RestartSec=5`
+  - Indipendente da `apss_lidar.launch.py` — sfrutta watchdog/fallback già in `oled_node.py`
+- `apss-lidar-standby.service` — `disabled`, mai effettivamente eseguito al boot (deprioritizzato)
+
 ### File di test
 Tutti i nuovi script di test vanno in `rosmaster_project/test_files/`
 

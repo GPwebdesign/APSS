@@ -3,6 +3,23 @@
 
 ---
 
+## Sessione 18 Maggio 2026
+- RPLIDAR A1M8 hardware guasto — reso autorizzato, sostituto in arrivo. Diagnosi: linea TX lidar morta (cavetto interno testa↔PCB o chip CP2102 TX). Test Python bare-metal con DTR=False: STOP+GET_INFO+GET_HEALTH → 0 bytes risposta
+- `ros-humble-slam-toolbox` da reinstallare su hawk (perso nel restore SD Aprile) — priorità Alta prima della sessione SLAM
+- `oled_node.py` riadattato: fallback INA219 diretto + watchdog 5s su `/battery`, layout SSD1306 128x64 con asterisco se lettura diretta INA219, rimosso `/apss/battery` JSON legacy — testato e funzionante su hawk
+- `luma.oled` 3.15.0 reinstallato post-restore SD
+- Catena alimentazione misurata: ECO-WORTHY 13.09V → DD32AJ4B setpoint 12.16V (a vuoto) / 11.70V (sotto carico, 0.46V load regulation) → INA219 → Yahboom 11.58V. Setpoint confermato — non modificare
+- 3 soglie ricarica voltage-based definite: LOW 11.50V (~30% SoC) / CRITICAL 11.20V (~15% SoC) / EMERGENCY 10.80V (~5% SoC) — da implementare in `patrol_node.py`
+- `apss-lidar-standby.service`: installato ma motore RPLIDAR non si ferma — deprioritizzato
+- Pacchetti pip post-restore da verificare proattivamente (`adafruit-circuitpython-*`, `picamera2`, ecc.)
+- Architettura `safety_node` concordata: nodo dedicato per tutti gli allarmi (beeper, soglie batteria, sensori futuri)
+- Soglia SOS batteria: 11.20V (CRITICAL) — allarme acustico contestuale al rientro forzato
+- `apss-oled.service`: service systemd indipendente (opzione A) con `After=network-online.target` — sfrutta fallback INA219 + watchdog già in `oled_node.py`
+- Beeper fisico: su scheda Yahboom (confermato, non GPIO Raspberry)
+- `oled_node.py`: nessuna modifica codice oggi — prima il service, poi `safety_node`
+
+---
+
 ## Sessione 15 Maggio 2026
 - TOF CH4 risolto: sensore originale difettoso sostituito con scorta — tutti e 3 i TOF verificati OK (0x29)
 - Libreria `adafruit-circuitpython-vl53l1x` v1.2.9 installata su hawk — approccio smbus2+busio.I2C verificato su tutti i canali
