@@ -765,7 +765,7 @@ def start_tcp_server(ip, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.settimeout(None)
-    sock.bind((ip, port))
+    sock.bind(('0.0.0.0', port))
     sock.listen(1)
 
     while True:

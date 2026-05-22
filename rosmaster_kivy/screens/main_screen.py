@@ -34,8 +34,9 @@ class MainScreen(MDScreen):
     # ── Stream video ─────────────────────────────────────────────────────
     def start_stream(self):
         """Avvia lo stream video in un thread separato."""
-        if self._stream_running:
-            return
+        self.stop_stream()
+        if self._stream_thread and self._stream_thread.is_alive():
+            self._stream_thread.join(timeout=2)
         self._stream_running = True
         self._stream_thread = threading.Thread(
             target=self._stream_worker, daemon=True)
@@ -49,9 +50,16 @@ class MainScreen(MDScreen):
         """Thread che legge i frame MJPEG dalla camera."""
         try:
             stream = urllib.request.urlopen(self.STREAM_URL, timeout=5)
+            try:
+                stream.fp.raw._sock.settimeout(2.0)
+            except Exception:
+                pass
             bytes_buf = b""
             while self._stream_running:
-                chunk = stream.read(4096)
+                try:
+                    chunk = stream.read(4096)
+                except Exception:
+                    break
                 if not chunk:
                     break
                 bytes_buf += chunk
@@ -141,7 +149,7 @@ class MainScreen(MDScreen):
     # ── Lifecycle ─────────────────────────────────────────────────────────
     def on_enter(self):
         """Chiamata quando la schermata diventa attiva."""
-        if self._tcp and self._tcp.connected and not self._stream_running:
+        if self._tcp and self._tcp.connected:
             self.start_stream()
 
     def on_robot_connected(self):
