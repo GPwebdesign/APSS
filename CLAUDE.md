@@ -89,9 +89,10 @@ dpkg -l | grep "^ii  ros-humble-" | awk '{print $2}' | xargs sudo apt-mark unhol
 
 ### Servizi systemd su hawk
 - `apss-oled.service` — service indipendente, `After=network-online.target`, utente `hawk`
-  - Avvia: `ros2 run <pkg> oled_node`
+  - Avvia: `ros2 run apss_ros2_pkg oled_node.py`
   - `Restart=on-failure`, `RestartSec=5`
   - Indipendente da `apss_lidar.launch.py` — sfrutta watchdog/fallback già in `oled_node.py`
+  - ✅ Installato e funzionante al boot (Mag 2026) — Main PID 1027 al reboot
 - `apss-lidar-standby.service` — `disabled`, mai effettivamente eseguito al boot (deprioritizzato)
 
 ### File di test

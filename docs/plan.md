@@ -99,7 +99,7 @@
 - [x] Layout nuovo: header `APSS` / IP centrato / V grande con `*` se lettura diretta INA219 / A W piccoli
 - [x] `luma.oled` 3.15.0 reinstallato via pip (era andato perso post-restore SD)
 - [x] Test funzionante — display mostra dati corretti con asterisco quando `battery_node` non gira
-- [~] Service systemd `apss-oled.service` per avvio al boot — in corso
+- [x] Service systemd `apss-oled.service` per avvio al boot — ✅ funzionante al boot (Mag 2026)
 - [ ] Test asterisco scompare quando `battery_node` parte
 
 ### Catena alimentazione + soglie ricarica (Maggio 2026)
@@ -119,7 +119,7 @@
 - [ ] Fix RPLIDAR standby al boot (script delay + retry) — deprioritizzato dopo fix USB
 - [x] `oled_node.py` — subscriber `/battery` (BatteryState) + fallback INA219 ✅
 - [ ] `battery_node` + `oled_node` aggiunti ad `apss_lidar.launch.py`
-- [~] Service systemd `apss-oled.service` per avvio al boot — in corso
+- [x] Service systemd `apss-oled.service` — installato, enabled, funzionante al boot ✅
 - [ ] Test integrato: battery_node → `/battery` → oled_node → display (asterisco scompare)
 
 ### Safety node (Maggio 2026)
@@ -200,7 +200,7 @@
 | ⚠️ RPLIDAR A1M8 in reso — in attesa di sostituto | Alta | Reso autorizzato dopo diagnosi HW (linea TX morta). Quando arriva il sostituto: test Python protocollo + lancio driver ROS2 |
 | Reinstallare `ros-humble-slam-toolbox` su hawk | Alta | Mancante post-restore SD — reinstallare prima della prima sessione SLAM |
 | Verificare altri pacchetti pip persi post-restore SD | Media | `luma.oled` era andato perso e ricomparso solo oggi. Verificare proattivamente `adafruit-circuitpython-*`, `picamera2`, ecc. prima di scoprirli mancanti |
-| Service systemd `apss-oled.service` | Media | In corso — da completare con dati package ROS2 da hawk |
+| Service systemd `apss-oled.service` | ~~Completato~~ | Installato, enabled, funzionante al boot — Main PID 1027 |
 | `battery_node` nel launch file | Media | Aggiungere ad `apss_lidar.launch.py` per avvio integrato |
 | Backup su USB disk via SMB | Media | \\iliadbox_Server\iliadbox — utente Rino — cifs-utils da installare su hawk |
 | Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |

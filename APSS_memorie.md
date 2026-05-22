@@ -3,6 +3,19 @@
 
 ---
 
+## Sessione 22 Maggio 2026
+- Package ROS2 rinominato `udemy_ros2_pkg` → `apss_ros2_pkg` — build pulita, 7 packages finished
+- Script Udemy eliminati: `publisher.py`, `subscriber.py`, `rpm_pub.py`, `rpm_sub.py`, `speed_calc.py`, `speed_calc_no_ param.py`, `service_client.py`, `service_server.py`, `turn_camera_client.py`, `turn_camera_server.py`
+- Srv Udemy eliminate: `OddEvenCheck.srv`, `TurnCamera.srv` — `BatteryStats.msg` mantenuta
+- `CMakeLists.txt` ripulito — solo script APSS reali nell'`install()`
+- Path workspace corretto confermato: `~/Workspaces/ros2_py_ws/` (W maiuscola, NON `~/ros2_py_ws/`)
+- `apss-oled.service` installato e funzionante al boot — `Main PID: 1027`, `active (running)` post-reboot
+- Eseguibile richiede estensione: `ros2 run apss_ros2_pkg oled_node.py` (non `oled_node`)
+- File memoria ROS2 `apss_ros2.md` da creare (rimandato)
+- Repo allineati: `ros2_py_ws` commit `dd2cefd`, APSS commit `9322a60`
+
+---
+
 ## Sessione 18 Maggio 2026
 - RPLIDAR A1M8 hardware guasto — reso autorizzato, sostituto in arrivo. Diagnosi: linea TX lidar morta (cavetto interno testa↔PCB o chip CP2102 TX). Test Python bare-metal con DTR=False: STOP+GET_INFO+GET_HEALTH → 0 bytes risposta
 - `ros-humble-slam-toolbox` da reinstallare su hawk (perso nel restore SD Aprile) — priorità Alta prima della sessione SLAM
