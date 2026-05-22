@@ -2,7 +2,7 @@
 """
 APSS — Launch file LiDAR + robot_state_publisher
 Avvia:
-  - Driver RPLIDAR A1M8 su /dev/ttyUSB1
+  - Driver RPLIDAR A1M8 su /dev/rplidar
   - robot_state_publisher con URDF apss_robot
   - tf statico map → odom → base_footprint
 """
@@ -18,7 +18,7 @@ from ament_index_python.packages import get_package_share_directory as get_pkg
 
 def generate_launch_description():
 
-    pkg_share = get_package_share_directory('udemy_ros2_pkg')
+    pkg_share = get_package_share_directory('apss_ros2_pkg')
     urdf_file = os.path.join(pkg_share, 'urdf', 'apss_robot.urdf.xml')
 
     with open(urdf_file, 'r') as f:
@@ -32,7 +32,7 @@ def generate_launch_description():
             executable='rplidar_composition',
             name='rplidar',
             parameters=[{
-                'serial_port': '/dev/ttyUSB1',
+                'serial_port': '/dev/rplidar',
                 'serial_baudrate': 115200,
                 'frame_id': 'laser',
                 'angle_compensate': True,

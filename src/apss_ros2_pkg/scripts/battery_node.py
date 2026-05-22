@@ -9,7 +9,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import BatteryState
-from udemy_ros2_pkg.msg import BatteryStats
+from apss_ros2_pkg.msg import BatteryStats
 import board
 import busio
 from adafruit_ina219 import INA219
