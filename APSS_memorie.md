@@ -3,6 +3,21 @@
 
 ---
 
+## Sessione 23 Maggio 2026
+- Bug video MainScreen risolto: TCP server bind su `0.0.0.0` invece di IP specifico — connessione con IP default senza passare da Settings
+- APK Android v2.1: `ModuleNotFoundError: No module named 'filetype'` risolto aggiungendo `filetype` ai requirements buildozer
+- App Android funzionante su S23 Ultra: connessione, video MainScreen, CameraScreen, cambio schermata
+- `camera_screen.py`: salvataggio foto/video in `/sdcard/DCIM/APSSystem/` (visibile in galleria), popup conferma foto, popup Salva/Annulla video con rinomina, notifica MediaStore
+- Icona app personalizzata `APSS_logo_black.png` → `icon.png` in `rosmaster_kivy/`, configurata in `buildozer.spec`
+- `buildozer.spec` aggiunto al repo `rosmaster_project` con `.gitignore` aggiornato per includere `icon.png`
+- `static_img/` aggiunta al repo APSS (APSS_logo_black.png, APSS_logo_white.png + sorgenti .ai/.psd)
+- Verifica I2C post-scarica statica: OLED 0x3c ✅, INA219 0x40 ✅, TCA9548A 0x70 ✅, tutti e 3 TOF 0x29 ✅
+- VM Buildozer: git configurato (rinopcode@gmail.com / GPwebdesign), token aggiornato
+- Regola memoria: riepilogo sessione è solo append in cima, sessioni precedenti intatte
+- `apss_ros2.md` creato in `docs/` — memoria permanente struttura ROS2 su hawk
+
+---
+
 ## Sessione 22 Maggio 2026
 - Package ROS2 rinominato `udemy_ros2_pkg` → `apss_ros2_pkg` — build pulita, 7 packages finished
 - Script Udemy eliminati: `publisher.py`, `subscriber.py`, `rpm_pub.py`, `rpm_sub.py`, `speed_calc.py`, `speed_calc_no_ param.py`, `service_client.py`, `service_server.py`, `turn_camera_client.py`, `turn_camera_server.py`

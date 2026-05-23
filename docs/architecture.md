@@ -177,7 +177,7 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 | `/scan` | `sensor_msgs/LaserScan` | rplidar_node | slam_toolbox |
 | `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) | slam_toolbox |
 | `/battery` | `sensor_msgs/BatteryState` | battery_node | oled_node ✅, safety_node (pianificato) |
-| `/battery/stats` | `udemy_ros2_pkg/BatteryStats` | battery_node | — |
+| `/battery/stats` | `apss_ros2_pkg/BatteryStats` | battery_node | — |
 | `/apss/alarm` | `std_msgs/String` | safety_node (pianificato) | (consumer futuri) |
 | `/apss/mode` | `std_msgs/String` | (futuro) | oled_node |
 | `/apss/sensors/env` | `std_msgs/String` JSON | (futuro) | oled_node |
@@ -191,7 +191,7 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 | Service | File | Stato | Funzione |
 |---------|------|-------|----------|
 | `apss-lidar-standby.service` | `rosmaster_project/apss_lidar_standby.py` | ⛔ Disabled (topic aperto) | Stop motore RPLIDAR al boot — non ha mai effettivamente fermato il motore |
-| `apss-oled.service` | `ros2_py_ws` — `ros2 run <pkg> oled_node` | 🚧 In corso | Avvio OLED al boot, indipendente da launch file — `After=network-online.target`, `Restart=on-failure` |
+| `apss-oled.service` | `ros2_py_ws` — `ros2 run apss_ros2_pkg oled_node.py` | ✅ Installato, enabled, funzionante al boot (Mag 2026) | Avvio OLED al boot, indipendente da launch file — `After=network-online.target`, `Restart=on-failure` |
 
 ---
 
@@ -285,14 +285,14 @@ Convenzione INA219: corrente positiva = ricarica attiva, negativa = flusso inver
 
 | Schermata | Stato | Funzione |
 |-----------|-------|---------|
-| MainScreen | Operativa — ⚠️ video non parte al primo `on_enter` (workaround: Home→Camera→Home) | Stream video + pad motori 3x3 |
+| MainScreen | Operativa — ✅ bug video primo `on_enter` risolto (TCP bind 0.0.0.0) | Stream video + pad motori 3x3 |
 | CameraScreen | Operativa | Stream + pan/tilt |
 | SettingsScreen | Operativa | IP robot, porte TCP/HTTP |
 | PatrolScreen | Placeholder | Pattugliamento autonomo (Fase 5) |
 | AlertScreen | Placeholder | Log alert + clip video (Fase 6) |
 | StatusScreen | Placeholder | Stato sistema, batteria (Fase 7) |
 
-**APK Android:** `apssystem-2.1-arm64-v8a_armeabi-v7a-debug.apk` generato con Buildozer 1.5.0 — target API 34, NDK 25b, Samsung S23 Ultra. Da testare.
+**APK Android:** `apssystem-2.1-arm64-v8a_armeabi-v7a-debug.apk` generato con Buildozer 1.5.0 — target API 34, NDK 25b, Samsung S23 Ultra. ✅ Testato e funzionante. Salvataggio media in `/sdcard/DCIM/APSSystem/` con notifica MediaStore. Icona personalizzata configurata.
 
 ### Parametri movimento
 

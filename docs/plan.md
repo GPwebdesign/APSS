@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Maggio 2026 — v2.7  
+> Aggiornato: Maggio 2026 — v2.8  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -92,7 +92,12 @@
 - [x] VM Buildozer configurata (Ubuntu 24.04, venv-buildozer, Buildozer 1.5.0)
 - [x] `buildozer.spec` configurato — API 34, NDK 25b, arm64-v8a + armeabi-v7a
 - [x] APK debug 2.1 generato — `apssystem-2.1-arm64-v8a_armeabi-v7a-debug.apk`
-- [ ] Test APK su Samsung S23 Ultra
+- [x] Test APK su Samsung S23 Ultra — funzionante ✅
+- [x] Bug connessione risolto: TCP server bind su `0.0.0.0`
+- [x] `filetype` aggiunto ai requirements — crash Android risolto
+- [x] Salvataggio foto/video in `/sdcard/DCIM/APSSystem/` con notifica MediaStore
+- [x] Popup conferma foto e popup Salva/Annulla/Rinomina video
+- [x] Icona app personalizzata `icon.png` configurata in `buildozer.spec`
 
 ### Display OLED autonomo (Maggio 2026)
 - [x] `oled_node.py` riadattato — autonomo al boot, fallback INA219 diretto, watchdog `/battery` 5s
@@ -141,7 +146,7 @@
 - [x] Setup Buildozer su VM dedicata Ubuntu 24.04
 - [x] `buildozer.spec` configurato — API 34, NDK 25b
 - [x] Build APK debug 2.1 generato
-- [ ] Test APK su Samsung S23 Ultra — stream video + motori + pan/tilt + `/capture_still`
+- [x] Test APK su Samsung S23 Ultra — funzionante ✅
 
 ### Fase 3 — SLAM mapping
 - [ ] Prima sessione di mapping con slam_toolbox
@@ -205,7 +210,7 @@
 | Backup su USB disk via SMB | Media | \\iliadbox_Server\iliadbox — utente Rino — cifs-utils da installare su hawk |
 | Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |
 | Bug intermittente `[ODOM] publisher's context is invalid` | Bassa | Cosmetico, sparisce su run lunghi — pre-esistente al fix USB |
-| Bug Video MainScreen al primo `on_enter` | Bassa | Workaround Home→Camera→Home — pre-esistente, UX minore |
+| Bug Video MainScreen al primo `on_enter` | ~~Chiuso~~ | Risolto con TCP bind su 0.0.0.0 — video funzionante al primo avvio |
 | Log rumore `Camera Init Error!` per `/dev/camera_usb` | Bassa | Handler legacy Yahboom, non funzionale — pre-esistente |
 | Ripristino aggiornamenti ROS2 Humble su hawk | Bassa | Dopo hold config completa su entrambi i sistemi |
 

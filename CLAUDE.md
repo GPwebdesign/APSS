@@ -95,6 +95,18 @@ dpkg -l | grep "^ii  ros-humble-" | awk '{print $2}' | xargs sudo apt-mark unhol
   - ✅ Installato e funzionante al boot (Mag 2026) — Main PID 1027 al reboot
 - `apss-lidar-standby.service` — `disabled`, mai effettivamente eseguito al boot (deprioritizzato)
 
+### VM Buildozer (gp68@VMware-Ubuntu24-04-4)
+- Macchina dedicata alla build APK Android con buildozer
+- Venv: `source ~/venv-buildozer/bin/activate` PRIMA di qualsiasi comando buildozer
+- buildozer.spec in `~/Workspaces/rosmaster_project/rosmaster_kivy/`
+- Git configurato: rinopcode@gmail.com / GPwebdesign
+- Modifiche codice da qui → commit/push → pull su VM sviluppo → subtree-pull PC
+
+### App Android — salvataggio media
+- Foto/video salvati in `/sdcard/DCIM/APSSystem/` (visibile in galleria)
+- Notifica MediaStore via jnius/MediaScannerConnection per visibilità immediata
+- Icona app: `rosmaster_kivy/icon.png` (APSS_logo_black.png rinominato)
+
 ### File di test
 Tutti i nuovi script di test vanno in `rosmaster_project/test_files/`
 
