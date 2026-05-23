@@ -2,9 +2,12 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+# immagini escluse tranne icon.png e asset statici
 *.jpg
 *.jpeg
 *.png
+!rosmaster_kivy/icon.png
+!static_img/
 .vscode/
 .buildozer/
 bin/
