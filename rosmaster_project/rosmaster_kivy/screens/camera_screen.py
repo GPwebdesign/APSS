@@ -7,9 +7,15 @@ import os
 import urllib.request
 import threading
 import io
+import platform
 from datetime import datetime
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
 from kivymd.uix.screen import MDScreen
 
 # Limiti angolo pan/tilt verificati fisicamente
@@ -33,7 +39,10 @@ class CameraScreen(MDScreen):
         self._tcp = None
         self._pan  = PAN_HOME
         self._tilt = TILT_HOME
-        self._save_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'save')
+        if platform.system() == 'Linux' and 'ANDROID_ARGUMENT' in os.environ:
+            self._save_dir = '/sdcard/DCIM/APSSystem'
+        else:
+            self._save_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'save')
         os.makedirs(self._save_dir, exist_ok=True)
         self._recording = False
         self._record_dir = None
@@ -96,16 +105,38 @@ class CameraScreen(MDScreen):
 
     # ── Foto e registrazione ──────────────────────────────────────────────
     def take_photo(self):
-        # TODO: migliorare qualità foto aggiungendo endpoint /capture_still
-        # in rosmaster_main.py che scatta in modalità still (colori eccellenti)
-        # vs attuale che salva frame MJPEG stream (colori pipeline video)
         if self._last_jpg is None:
             return
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         path = os.path.join(self._save_dir, f'photo_{ts}.jpg')
         with open(path, 'wb') as f:
             f.write(self._last_jpg)
-        print(f'[CAMERA] Foto salvata: {path}')
+        self._notify_media_store(path)
+        self._show_photo_popup(path)
+
+    def _notify_media_store(self, path):
+        """Notifica Android MediaStore del nuovo file per renderlo visibile in galleria."""
+        try:
+            if 'ANDROID_ARGUMENT' in os.environ:
+                from jnius import autoclass
+                MediaScannerConnection = autoclass('android.media.MediaScannerConnection')
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                context = PythonActivity.mActivity
+                MediaScannerConnection.scanFile(context, [path], None, None)
+        except Exception:
+            pass
+
+    def _show_photo_popup(self, path):
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        lbl = Label(text=f'Foto salvata:\n{os.path.basename(path)}',
+                    halign='center', text_size=(None, None))
+        layout.add_widget(lbl)
+        btn = Button(text='OK', size_hint_y=None, height=44)
+        layout.add_widget(btn)
+        popup = Popup(title='Foto salvata', content=layout,
+                      size_hint=(0.85, 0.35), auto_dismiss=False)
+        btn.bind(on_release=popup.dismiss)
+        popup.open()
 
     def toggle_record(self):
         if not self._recording:
@@ -118,14 +149,57 @@ class CameraScreen(MDScreen):
                 self.ids.btn_record.icon = 'record-circle'
                 self.ids.btn_record.theme_icon_color = 'Custom'
                 self.ids.btn_record.icon_color = (1, 0, 0, 1)
-            print(f'[CAMERA] Registrazione avviata: {self._record_dir}')
         else:
             self._recording = False
             if hasattr(self.ids, 'btn_record'):
                 self.ids.btn_record.icon = 'record-circle'
                 self.ids.btn_record.theme_icon_color = 'Custom'
                 self.ids.btn_record.icon_color = (1, 1, 1, 1)
-            print(f'[CAMERA] Registrazione fermata — {self._record_count} frame salvati')
+            if self._record_dir:
+                self._show_video_popup(self._record_dir, self._record_count)
+
+    def _show_video_popup(self, record_dir, frame_count):
+        default_name = os.path.basename(record_dir)
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        layout.add_widget(Label(
+            text=f'Fermata — {frame_count} frame\nCartella: {os.path.basename(os.path.dirname(record_dir))}',
+            halign='center'))
+        layout.add_widget(Label(text='Nome cartella:', size_hint_y=None, height=30))
+        txt = TextInput(text=default_name, multiline=False, size_hint_y=None, height=40)
+        layout.add_widget(txt)
+        btn_layout = BoxLayout(size_hint_y=None, height=44, spacing=10)
+        btn_ok = Button(text='Salva')
+        btn_cancel = Button(text='Annulla')
+        btn_layout.add_widget(btn_ok)
+        btn_layout.add_widget(btn_cancel)
+        layout.add_widget(btn_layout)
+        popup = Popup(title='Video salvato', content=layout,
+                      size_hint=(0.85, 0.55), auto_dismiss=False)
+
+        def on_ok(instance):
+            new_name = txt.text.strip()
+            if new_name and new_name != default_name:
+                new_path = os.path.join(os.path.dirname(record_dir), new_name)
+                try:
+                    os.rename(record_dir, new_path)
+                    self._notify_media_store(new_path)
+                except Exception:
+                    pass
+            else:
+                self._notify_media_store(record_dir)
+            popup.dismiss()
+
+        def on_cancel(instance):
+            import shutil
+            try:
+                shutil.rmtree(record_dir)
+            except Exception:
+                pass
+            popup.dismiss()
+
+        btn_ok.bind(on_release=on_ok)
+        btn_cancel.bind(on_release=on_cancel)
+        popup.open()
 
     # ── Controllo Pan ─────────────────────────────────────────────────────
     def pan_left(self):
