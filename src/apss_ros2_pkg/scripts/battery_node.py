@@ -3,8 +3,8 @@
 # APSS — Battery Monitor Node
 # Legge INA219 via I2C e pubblica su /battery (sensor_msgs/BatteryState)
 # INA219: indirizzo 0x40, shunt R100 (0.1Ω)
-# Batteria: Yuasa YTZ10S AGM 12V 8.6Ah
-# Versione: 1.0 — Maggio 2026
+# Batteria: ECO-WORTHY LiFePO4 12.8V 8Ah (ECO-LFPYZ1208)
+# Versione: 2.0 — Maggio 2026
 
 import rclpy
 from rclpy.node import Node
@@ -15,32 +15,44 @@ import busio
 from adafruit_ina219 import INA219
 import math
 
-# Tabella tensione → percentuale per batteria AGM 12V (scarica)
-# Valori empirici — da calibrare sul campo
-VOLTAGE_TABLE = [
-    (12.70, 1.00),
-    (12.50, 0.90),
-    (12.30, 0.75),
-    (12.10, 0.60),
-    (11.90, 0.40),
-    (11.75, 0.20),
-    (11.60, 0.10),
-    (11.50, 0.00),
+# Tabella SoC LiFePO4 12.8V (tensione OCV a riposo)
+# NOTA: non usabile con INA219 hawk (misura tensione regolata DD32AJ4B
+# ~12.10V costanti). Mantenuta come riferimento per futura misura diretta.
+VOLTAGE_TABLE_LIFEPO4 = [
+    (13.60, 1.00),
+    (13.30, 0.90),
+    (13.20, 0.70),
+    (13.10, 0.50),
+    (13.00, 0.30),
+    (12.80, 0.20),
+    (12.50, 0.10),
+    (12.00, 0.05),
+    (10.00, 0.00),
 ]
 
-def voltage_to_percentage(v):
-    """Interpola la percentuale dalla tensione usando la tabella AGM."""
-    if v >= VOLTAGE_TABLE[0][0]:
+def voltage_to_percentage_lifepo4(v):
+    """Interpola SoC da tensione OCV LiFePO4.
+    NON USARE con INA219 hawk — misura tensione regolata DD32AJ4B.
+    Mantenuta per riferimento futuro."""
+    if v >= VOLTAGE_TABLE_LIFEPO4[0][0]:
         return 1.0
-    if v <= VOLTAGE_TABLE[-1][0]:
+    if v <= VOLTAGE_TABLE_LIFEPO4[-1][0]:
         return 0.0
-    for i in range(len(VOLTAGE_TABLE) - 1):
-        v_high, p_high = VOLTAGE_TABLE[i]
-        v_low, p_low = VOLTAGE_TABLE[i + 1]
+    for i in range(len(VOLTAGE_TABLE_LIFEPO4) - 1):
+        v_high, p_high = VOLTAGE_TABLE_LIFEPO4[i]
+        v_low, p_low = VOLTAGE_TABLE_LIFEPO4[i + 1]
         if v_low <= v <= v_high:
             ratio = (v - v_low) / (v_high - v_low)
             return p_low + ratio * (p_high - p_low)
     return 0.0
+
+# Capacità nominale ECO-WORTHY LiFePO4 8Ah in Coulomb
+BATTERY_CAPACITY_AH = 8.0
+BATTERY_CAPACITY_C  = BATTERY_CAPACITY_AH * 3600.0  # 28800 C
+
+# SoC iniziale assunto al boot (0.85 = 85% — valore conservativo)
+# Si aggiorna automaticamente via coulomb counting durante l'uso
+SOC_INITIAL = 0.85
 
 
 class BatteryNode(Node):
@@ -55,6 +67,10 @@ class BatteryNode(Node):
         self.p_min = float('inf')
         self.p_max = float('-inf')
         self.sample_count = 0
+        # Coulomb counting
+        self.soc = SOC_INITIAL          # SoC corrente (0.0–1.0)
+        self.soc_locked = False         # True se SoC agganciato a 100% in ricarica
+        self.last_time = None           # timestamp ultima lettura
         self.timer = self.create_timer(2.0, self.publish_battery)
 
         # Init INA219
@@ -69,7 +85,26 @@ class BatteryNode(Node):
             current_a = current_ma / 1000.0       # A
             power_w = voltage * abs(current_a)    # W calcolato V×I
 
-            percentage = voltage_to_percentage(voltage)
+            # ── Coulomb counting ──────────────────────────────────
+            now = self.get_clock().now().nanoseconds / 1e9  # secondi
+            if self.last_time is not None:
+                dt = now - self.last_time
+                # Corrente positiva = DISCHARGING → SoC scende
+                # Corrente negativa = CHARGING    → SoC sale
+                delta_soc = (-current_a * dt) / BATTERY_CAPACITY_C
+                self.soc = max(0.0, min(1.0, self.soc + delta_soc))
+                # Aggancio SoC a 100% quando in ricarica con corrente significativa
+                if current_a < -0.1:
+                    # In ricarica: se corrente scende sotto soglia → carica completa
+                    if abs(current_a) < 0.05 and not self.soc_locked:
+                        self.soc = 1.0
+                        self.soc_locked = True
+                        self.get_logger().info('[BATTERY] Carica completa — SoC agganciato a 100%')
+                else:
+                    self.soc_locked = False  # reset lock quando non in ricarica
+            self.last_time = now
+            percentage = self.soc
+            # ── Fine coulomb counting ─────────────────────────────
 
             self.sample_count += 1
             self.v_min = min(self.v_min, voltage)
@@ -93,16 +128,16 @@ class BatteryNode(Node):
             msg.voltage = float(voltage)
             msg.current = float(current_a)        # negativo=discharge, positivo=charge
             msg.percentage = float(percentage)
-            msg.design_capacity = 8.6             # Ah — Yuasa YTZ10S
+            msg.design_capacity = 8.0             # Ah — ECO-WORTHY LiFePO4
             msg.capacity = float('nan')
             msg.charge = float('nan')
             msg.temperature = float('nan')
             msg.power_supply_status = status
             msg.power_supply_health = BatteryState.POWER_SUPPLY_HEALTH_GOOD
-            msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_UNKNOWN
+            msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_LIPO
             msg.present = True
             msg.location = 'main'
-            msg.serial_number = 'YTZ10S'
+            msg.serial_number = 'ECO-LFPYZ1208'
 
             self.publisher_.publish(msg)
 
@@ -120,7 +155,8 @@ class BatteryNode(Node):
 
             self.get_logger().info(
                 f'[BATTERY] V={voltage:.3f}V  I={current_a:.3f}A  '
-                f'P={power_w:.2f}W  SoC={percentage*100:.0f}%  status={status}'
+                f'P={power_w:.2f}W  SoC={percentage*100:.0f}%  '
+                f'status={status}  [coulomb]'
             )
 
         except Exception as e:
