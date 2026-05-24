@@ -36,21 +36,34 @@
 - `design_capacity`: 8.6 → **8.0** Ah
 - `serial_number`: 'YTZ10S' → **'ECO-LFPYZ1208'**
 - `power_supply_technology`: UNKNOWN → **LIPO** (enum ROS2 più vicino a LiFePO4)
+<<<<<<< HEAD
 - **Metodo SoC:** rimosso calcolo da tensione (INA219 hawk misura tensione regolata DD32AJ4B ~12.10V stabili, non la tensione reale della batteria) — introdotto **coulomb counting** come metodo primario
   - `SOC_INITIAL = 0.85` — SoC assunto al boot
   - `BATTERY_CAPACITY_AH = 8.0` → `BATTERY_CAPACITY_C = 28800.0` C
   - Reset SoC a 100% quando corrente scende sotto 0.05A durante ricarica (fine fase CV)
 - **Tabella SoC LiFePO4** (`VOLTAGE_TABLE_LIFEPO4`) mantenuta come riferimento futuro — non usata attivamente per stima SoC
+=======
+- **Metodo SoC:** introdotto **coulomb counting** come metodo primario — INA219 hawk misura tensione regolata DD32AJ4B (~12.10V stabili), non la tensione reale della batteria
+  - `SOC_INITIAL = 0.85` — SoC assunto al boot
+  - `BATTERY_CAPACITY_AH = 8.0` → `BATTERY_CAPACITY_C = 28800.0` C
+  - Reset SoC a 100% quando corrente scende sotto 0.05A durante ricarica (fine fase CV)
+- `VOLTAGE_TABLE_LIFEPO4` mantenuta come riferimento futuro — non usata attivamente per stima SoC
+>>>>>>> 5f1da1448eb2395003866b8dcf187a0ff7db1002
 - Log aggiornato con tag `[coulomb]` per identificare il metodo di stima attivo
 
 ### Documentazione
 
+<<<<<<< HEAD
 - `docs/architecture.md` aggiornato:
   - Sezione INA219 robot: aggiunta nota architetturale critica su posizione dopo DD32AJ4B e inutilizzabilità stima SoC da tensione
   - Sezione Stack ROS2: aggiunta tabella dettagliata battery_node.py v2.0
   - Sezione Hardware docking station: completamente riscritta con dati reali misurati (parametri XL4016/XHM603 definitivi, tabella offset catena, dati ciclo completo, INA219 docking HW-831B, firmware v2.1 fix table e roadmap v2.2)
   - Stack tecnologico: firmware docking aggiornato a v2.1
 - `docs/doc_firmware.md` aggiunto — documentazione completa firmware ESP32 docking v2.1: architettura, sequenza avvio, tutti i file, stato globale, catena potenza con offset misurati, fix applicati, note operative, roadmap
+=======
+- `docs/architecture.md` aggiornato: nota architetturale INA219 robot (posizione dopo DD32AJ4B, tensione regolata), tabella dettagliata battery_node.py v2.0, sezione docking completamente riscritta con dati reali misurati (XL4016/XHM603 definitivi, offset catena, dati ciclo completo, INA219 HW-831B, firmware v2.1 fix table e roadmap v2.2)
+- `docs/doc_firmware.md` aggiunto — documentazione completa firmware ESP32 docking v2.1: architettura, sequenza avvio, tutti i file, stato globale, catena potenza con offset misurati, fix applicati, note operative, roadmap v2.2
+>>>>>>> 5f1da1448eb2395003866b8dcf187a0ff7db1002
 
 ---
 
