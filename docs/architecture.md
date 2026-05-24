@@ -10,7 +10,7 @@
 | Middleware | ROS2 Humble Hawksbill |
 | Server robot | Python 3.10 — `rosmaster_main.py` |
 | App controllo | Kivy 2.3.1 + KivyMD 1.2.0 |
-| Firmware docking | MicroPython su ESP32 WROOM-32D |
+| Firmware docking | MicroPython su ESP32 WROOM-32D v2.1 |
 | Comunicazione | TCP porta 6000 (controllo) + HTTP porta 6500 (MJPEG + `/capture_still`) |
 
 ---
@@ -76,6 +76,8 @@ Installato in serie al positivo tra il regolatore DD32AJ4B e la scheda Yahboom (
 | Assorbimento idle misurato | ~0.45–0.60 A / ~5.30–6.45 W (Maggio 2026) |
 | Picco motori (memoria battery_node) | ~2.14 A / ~25.7 W |
 | Caduta su shunt | 60 mV @ 0.6A → 200 mV @ 2A |
+
+> ⚠️ **Nota architetturale critica:** l'INA219 hawk è posizionato **dopo** il convertitore DD32AJ4B. Misura quindi la tensione **regolata** (~12.10V stabili) e non la tensione reale della batteria ECO-WORTHY. La stima SoC da tensione INA219 è inutilizzabile — il `battery_node.py` usa **coulomb counting** (integrazione corrente nel tempo) come metodo primario di stima SoC.
 
 ---
 
@@ -159,9 +161,26 @@ Il robot autonomo deve decidere quando rientrare al docking. **Fase 1**: trigger
 | `apss_lidar.launch.py` | Launch: RPLIDAR + robot_state_publisher + tf + slam_toolbox + RViz2 |
 | `rviz/apss.rviz` | Configurazione RViz2 |
 | `oled_node.py` | Nodo OLED SSD1306 — layout: APSS / IP / V grande (asterisco se lettura diretta INA219) / A W. Subscriber `/battery` + fallback INA219 diretto con watchdog 5s |
-| `battery_node.py` | Monitor INA219 — pubblica `/battery` + `/battery/stats` ogni 2s |
+| `battery_node.py` | Monitor INA219 v2.0 — pubblica `/battery` (BatteryState, LiFePO4, coulomb counting) + `/battery/stats` ogni 2s |
 | `tof_node.py` | (pianificato) Legge TCA9548A CH2/CH3/CH4 — pubblica `/tof/*` |
 | `avoidance_node.py` | (pianificato) Obstacle avoidance — subscribe `/tof/*` → pubblica `/cmd_vel` |
+
+### battery_node.py — v2.0 (Maggio 2026)
+
+Aggiornato per batteria ECO-WORTHY LiFePO4 12.8V 8Ah (ECO-LFPYZ1208).
+
+| Parametro | Valore |
+|-----------|--------|
+| Batteria | ECO-WORTHY LiFePO4 12.8V 8Ah — `design_capacity=8.0`, `serial_number='ECO-LFPYZ1208'` |
+| Tecnologia | `POWER_SUPPLY_TECHNOLOGY_LIPO` (enum ROS2 più vicino a LiFePO4) |
+| Metodo SoC | **Coulomb counting** — integrazione corrente nel tempo |
+| SoC iniziale | 85% (SOC_INITIAL) — assunto al boot, si aggiorna durante l'uso |
+| Capacità nominale | 8.0 Ah = 28800 C (BATTERY_CAPACITY_C) |
+| Reset SoC | 100% quando corrente scende sotto 0.05A durante ricarica (fine carica CV) |
+| Tabella tensione LiFePO4 | VOLTAGE_TABLE_LIFEPO4 mantenuta come riferimento futuro — NON usata per SoC (INA219 misura tensione regolata DD32AJ4B ~12.10V stabili) |
+| Log | `[BATTERY] V=...V I=...A P=...W SoC=...% status=... [coulomb]` |
+
+> ⚠️ La stima SoC da tensione INA219 hawk è inutilizzabile perché misura la tensione regolata dal DD32AJ4B (~12.10V costanti), non la tensione reale della batteria. Il coulomb counting è il metodo corretto in questa architettura.
 
 ### TF tree
 ```
@@ -176,7 +195,7 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 |-------|------|-----------|-------------|
 | `/scan` | `sensor_msgs/LaserScan` | rplidar_node | slam_toolbox |
 | `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) | slam_toolbox |
-| `/battery` | `sensor_msgs/BatteryState` | battery_node | oled_node ✅, safety_node (pianificato) |
+| `/battery` | `sensor_msgs/BatteryState` | battery_node v2.0 | oled_node ✅, safety_node (pianificato) |
 | `/battery/stats` | `apss_ros2_pkg/BatteryStats` | battery_node | — |
 | `/apss/alarm` | `std_msgs/String` | safety_node (pianificato) | (consumer futuri) |
 | `/apss/mode` | `std_msgs/String` | (futuro) | oled_node |
@@ -247,35 +266,100 @@ Backup originale conservato in `Rosmaster_Lib.py.bak-APSS`.
 
 ## Hardware docking station
 
-### Circuito ricarica
+### Circuito ricarica (aggiornato Maggio 2026 — LiFePO4)
 
 ```
-220VAC → [PSU 20V/3.25A] → [XL4016 CC/CV 14.40V/0.9A] → [Fusibile T1.5A slow-blow]
-       → [XHM603 IN+] → [Relay] → [Batteria LiFePO4 ECO-WORTHY]
+220VAC → [PSU 20V/3.25A] → [Relay CH1 ESP32 GPIO5] → [XL4016 CC/CV 14.40V/1.5A]
+       → [Fusibile T3.15A slow-blow] → [XHM603 v1.0] → [INA219 HW-831B]
+       → [Pogo pin] → [Pad rame robot] → [ECO-WORTHY LiFePO4 12.8V 8Ah]
 ```
 
-Soglie XHM603 aggiornate per LiFePO4 (conservative):
-- START: 13.1V (display)
-- STOP: 14.2V (display)
-- Offset catena: display XHM603 vs terminali = +0.70V, INA219 vs terminali = +0.34V
+#### Parametri XL4016 (calibrati Maggio 2026)
 
-> ⚠️ **Fase D in corso:** fusibile T1.5A → T3A slow-blow, ricalibrazione CC a 2A, soglie XHM603 definitive da confermare dopo ciclo completo.
+| Parametro | Valore | Note |
+|-----------|--------|------|
+| Tensione uscita (CV) | **14.40V** | Calibrato con trimmer — LiFePO4 max 14.6V |
+| Corrente massima (CC) | **1.5A** | Calibrato con trimmer — tasso di carica 0.19C su 8Ah |
+| Fusibile | T3.15A 250V slow-blow | Sostituisce T1.5A precedente |
 
-### ESP32 firmware v2.0
+> ⚠️ Corrente di 2A genera spike alla chiusura relay che fanno scattare erroneamente XHM603. 1.5A è il valore di compromesso ottimale verificato sperimentalmente.
+
+#### Parametri XHM603 v1.0 (calibrati Maggio 2026 — LiFePO4)
+
+| Parametro | Valore display | Tensione reale stimata | Note |
+|-----------|---------------|----------------------|------|
+| Soglia STOP | **14.4V** | ~13.70–13.80V ai terminali | Scatta al **superamento** → effettivo a 14.5V display |
+| Soglia START | **13.1V** | ~12.40V ai terminali | Avvia ricarica a ~20% SoC |
+
+#### Offset catena di potenza docking (misurati fisicamente — Maggio 2026)
+
+| Coppia | Offset | Condizione |
+|--------|--------|------------|
+| Display XHM603 vs terminali batteria | **+0.70V** | Relay aperto (a vuoto) |
+| INA219 docking vs terminali batteria | **+0.34V** | In ricarica attiva |
+| Display XHM603 vs INA219 docking | **+0.40V** | In ricarica attiva |
+
+#### Note operative XHM603
+
+- La soglia scatta al **superamento** del valore impostato: STOP=14.4V → scatta a 14.5V display
+- Misurare tensione con tester sui terminali batteria **durante la ricarica** può far scattare il relay per perturbazione del circuito — riarmare manualmente da webapp ESP32
+- Con OCV finale misurato a 13.40V (30 min post-carica) → SoC ~95% → soglia STOP corretta, non modificare
+
+#### Dati ciclo di ricarica completo (verificato Maggio 2026)
+
+| Parametro | Valore |
+|-----------|--------|
+| OCV inizio ciclo | 13.23V (~60-70% SoC) |
+| Durata ricarica completa | ~3h (da ~60% a ~95% SoC) |
+| Corrente fase CC | ~1.35A media |
+| Corrente fine carica (fase CV) | ~0.99A al momento scatto |
+| Display al momento scatto | 14.5V (soglia 14.4V + superamento) |
+| OCV post-scatto immediato | 13.60V |
+| OCV stabile (30 min) | **13.40V (~95% SoC)** |
+
+### INA219 HW-831B — Monitor ricarica docking
+
+| Parametro | Valore |
+|-----------|--------|
+| Indirizzo I2C | 0x40 |
+| Bus I2C | ESP32 (SDA=GPIO21, SCL=GPIO22) |
+| Shunt | R100 (0.1Ω) onboard |
+| Posizione nella catena | Dopo XHM603, prima dei pogo pin |
+| Convenzione corrente | Positiva = ricarica attiva, Negativa = flusso inverso (batteria alimenta XHM603 a relay aperto) |
+| Lettura corrente ricarica tipica | ~1.35A fase CC, ~0.99A fine CV |
+| Lettura corrente a relay aperto | ~-0.02A (flusso inverso minimo) |
+
+### ESP32 firmware v2.1 (Maggio 2026)
 
 | File | Funzione |
 |------|---------|
-| `boot.py` | Init WiFi |
-| `config.json` | Soglie, intervalli, SSID |
-| `ina219.py` | Driver I2C INA219 |
-| `main.py` | Webserver + loop principale |
+| `boot.py` | Relay GPIO5=HIGH (aperto) come prima istruzione — sicurezza fault software. CPU 240MHz. WebREPL start. |
+| `config.json` | WiFi, pin GPIO, soglie INA219, parametri ricarica (START/STOP reference), debounce reed |
+| `ina219.py` | Driver I2C INA219 — lettura V/A/W con convenzione corrente verificata fisicamente |
+| `main.py` | Webserver HTTP dashboard, loop sensori 2s, IRQ microswitch con debounce 2000ms, relay automatico, watchdog CAL INA219, sync NTP |
 
 GPIO mapping:
-- GPIO5: Relay CH1 (ricarica)
-- GPIO18: Reed switch NC (conferma docking)
-- GPIO34: Blackout detection (assenza 230V)
+- GPIO5: Relay CH1 (LOW=chiuso=ricarica abilitata, HIGH=aperto=ricarica bloccata)
+- GPIO18: Microswitch NC (sostituisce reed switch — comportamento erratico verificato). Attualmente fissato in posizione aperta → GPIO18 pull-up = 1 costante → relay si chiude automaticamente al boot con rete presente
+- GPIO34: Blackout detection via partitore R1=47kΩ/R2=10kΩ — V_misura=3.51V con rete presente
 
-Convenzione INA219: corrente positiva = ricarica attiva, negativa = flusso inverso normale
+#### Fix applicati in v2.1 rispetto a v2.0
+
+| Fix | Problema risolto |
+|-----|-----------------|
+| Debounce IRQ 2000ms su GPIO18 | Spike dalla chiusura relay XHM603 interpretati come sgancio → relay ESP32 aperto → ricarica interrotta |
+| Relay automatico nel loop 2s | Relay sempre aperto al boot richiedeva intervento manuale da webapp ad ogni avvio |
+| Watchdog CAL INA219 | Reset a caldo ESP32 azzerava registro CAL → corrente legge 0A con tensione corretta |
+| config.json aggiornato LiFePO4 | max_expected_amps 3.0→2.0, soglie tensione aggiornate, sezione ricarica aggiunta |
+
+Dashboard: `http://192.168.1.193` — V/I/W in tempo reale, log eventi, controllo relay, scan I2C.
+Comandi REPL: `r1()` relay ON, `r0()` relay OFF, `stato_txt()` stato seriale.
+Documentazione completa firmware: `docs/doc_firmware.md`.
+
+#### Roadmap firmware v2.2
+
+- `relay_chiudi()` e `relay_apri()` devono loggare automaticamente V/A/W INA219 al momento esatto di avvio e stop ricarica
+- Installazione microswitch meccanico sul paraurti robot (attualmente fissato con scotch)
 
 ---
 
