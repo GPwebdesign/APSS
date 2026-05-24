@@ -2,6 +2,54 @@
 
 ---
 
+## [v2.1.0] — 2026-05-24
+
+### Batteria — sostituzione YTZ10S → ECO-WORTHY LiFePO4
+
+- Sostituita batteria Yuasa YTZ10S AGM 12V 8.6Ah con **ECO-WORTHY LiFePO4 12.8V 8Ah** (ECO-LFPYZ1208, ASIN B0CCJ8JJV3)
+- Dimensioni fisiche: 152×65×96mm — terminali F2 — peso 1.05kg (-2.15kg rispetto a YTZ10S)
+- Batteria installata nel robot, cablaggio T-plug con interruttore sul positivo
+
+### Circuito di ricarica docking — ricalibrazione LiFePO4
+
+- **XL4016** ricalibrato: CV 14.82V → **14.40V**, CC 0.9A → **1.5A**
+  - 2A generava spike alla chiusura relay che facevano scattare erroneamente XHM603 — 1.5A è il valore ottimale verificato sperimentalmente
+- **Fusibile** sostituito: T1.5A slow-blow → **T3.15A slow-blow** 250V
+- **XHM603** soglie aggiornate per LiFePO4: STOP **14.4V** display (scatta a 14.5V) / START **13.1V** display
+  - Soglia STOP confermata corretta: OCV stabile post-carica = 13.40V (~95% SoC) — non modificare
+  - Comportamento verificato: XHM603 scatta al **superamento** del valore impostato (14.4V → effettivo 14.5V)
+- Offset catena misurati fisicamente: display XHM603 vs terminali = +0.70V, INA219 docking vs terminali = +0.34V
+
+### Firmware ESP32 docking — v2.1
+
+- **Fix 1 — Debounce IRQ reed/microswitch (GPIO18):** debounce software 2000ms via `utime.ticks_diff()` — spike dalla chiusura relay XHM603 non provocano più apertura erronea del relay ESP32
+- **Fix 2 — Relay automatico:** logica nel loop principale ogni 2s — relay si chiude automaticamente se switch=1 e rete presente, senza intervento manuale da webapp
+- **Fix 3 — Watchdog CAL INA219:** in `leggi_sensori()` — se V>12V e A=0 reinizializza automaticamente registro CAL azzerato da reset a caldo ESP32
+- **Fix 4 — config.json aggiornato:** `max_expected_amps` 3.0→2.0, `tensione_min_v` 11.5→12.5, `tensione_max_v` 15.0→14.7, aggiunta sezione `ricarica` con valori START/STOP di riferimento
+- **Branding:** dashboard `http://192.168.1.193` aggiornata da "Docking Station — Rosmaster R2" a "Docking Station — APSS"
+- Reed switch sostituito con **microswitch meccanico NC** (comportamento reed erratico verificato) — attualmente fissato aperto → GPIO18 pull-up = 1 costante → relay chiude automaticamente al boot con rete presente
+- Documentazione firmware: `docs/doc_firmware.md` aggiunto al repo APSS
+
+### battery_node.py — v2.0 (LiFePO4)
+
+- Aggiornato per batteria ECO-WORTHY LiFePO4 12.8V 8Ah (ECO-LFPYZ1208)
+- `design_capacity`: 8.6 → **8.0** Ah
+- `serial_number`: 'YTZ10S' → **'ECO-LFPYZ1208'**
+- `power_supply_technology`: UNKNOWN → **LIPO** (enum ROS2 più vicino a LiFePO4)
+- **Metodo SoC:** introdotto **coulomb counting** come metodo primario — INA219 hawk misura tensione regolata DD32AJ4B (~12.10V stabili), non la tensione reale della batteria
+  - `SOC_INITIAL = 0.85` — SoC assunto al boot
+  - `BATTERY_CAPACITY_AH = 8.0` → `BATTERY_CAPACITY_C = 28800.0` C
+  - Reset SoC a 100% quando corrente scende sotto 0.05A durante ricarica (fine fase CV)
+- `VOLTAGE_TABLE_LIFEPO4` mantenuta come riferimento futuro — non usata attivamente per stima SoC
+- Log aggiornato con tag `[coulomb]` per identificare il metodo di stima attivo
+
+### Documentazione
+
+- `docs/architecture.md` aggiornato: nota architetturale INA219 robot (posizione dopo DD32AJ4B, tensione regolata), tabella dettagliata battery_node.py v2.0, sezione docking completamente riscritta con dati reali misurati (XL4016/XHM603 definitivi, offset catena, dati ciclo completo, INA219 HW-831B, firmware v2.1 fix table e roadmap v2.2)
+- `docs/doc_firmware.md` aggiunto — documentazione completa firmware ESP32 docking v2.1: architettura, sequenza avvio, tutti i file, stato globale, catena potenza con offset misurati, fix applicati, note operative, roadmap v2.2
+
+---
+
 ## [v0.20.0] — 2026-04-25
 
 ### Aggiunto
