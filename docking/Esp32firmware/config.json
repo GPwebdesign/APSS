@@ -18,11 +18,16 @@
     "ina219": {
         "i2c_address": 64,
         "shunt_ohms": 0.1,
-        "max_expected_amps": 3.0
+        "max_expected_amps": 2.0
     },
     "soglie": {
-        "tensione_min_v": 11.5,
-        "tensione_max_v": 15.0
+        "tensione_min_v": 12.5,
+        "tensione_max_v": 14.7
+    },
+    "ricarica": {
+        "start_v": 13.1,
+        "stop_v":  14.4,
+        "debounce_reed_ms": 2000
     },
     "test": {
         "lettura_intervallo_s": 2

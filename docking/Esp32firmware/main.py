@@ -3,6 +3,7 @@
 # NTP sync all'avvio — orario reale nel log e nella dashboard
 
 import json, time, network, socket, ntptime
+import utime
 from machine import Pin, I2C, RTC
 from ina219 import INA219
 
@@ -92,13 +93,20 @@ def log(msg):
     print("[{}] {}".format(ora_str(), msg))
 
 # ── IRQ Reed switch ───────────────────────────────────────────────
+_last_reed_ms = 0
+REED_DEBOUNCE_MS = 2000
+
 def irq_reed(pin):
+    global _last_reed_ms
+    now = utime.ticks_ms()
+    if utime.ticks_diff(now, _last_reed_ms) < REED_DEBOUNCE_MS:
+        return  # ignora spike brevi (<2s)
+    _last_reed_ms = now
     v = pin.value()
     stato["reed"] = v
     log("Reed AGGANCIATO" if v else "Reed sganciato")
     if v == 0 and stato["relay"] == 0:
-        relay.value(1)
-        stato["relay"] = 1
+        relay_apri()
         log("Relay aperto — sicurezza")
 
 reed.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=irq_reed)
@@ -112,6 +120,10 @@ def leggi_sensori():
         stato["v"] = dati["v"]
         stato["a"] = dati["a"]
         stato["w"] = dati["w"]
+        # Watchdog CAL: tensione ok ma corrente zero → reinizializza
+        if stato["v"] > 12.0 and stato["a"] == 0.0:
+            sensore.configura(max_amps=cfg["ina219"]["max_expected_amps"])
+            log("INA219 CAL reinizializzato")
 
 # ── Comandi ───────────────────────────────────────────────────────
 def relay_chiudi():
@@ -198,7 +210,7 @@ def _html_body():
     dat = data_str()
     log_html = "".join("<div class=lr>{}</div>".format(e) for e in reversed(s["log"]))
 
-    h  = "<h2>Docking Station — Rosmaster R2</h2>"
+    h  = "<h2>Docking Station — APSS</h2>"
     h += "<div class=sub>"
     h += "<b style='color:#1a3a5c;font-size:13px'>{} {}</b>".format(dat, ora)
     h += " &nbsp;|&nbsp; Uptime {:d}s".format(up)
@@ -352,6 +364,17 @@ while True:
             log("Rete OK" if stato["grid"] else "BLACKOUT")
             if stato["grid"] == 0 and stato["relay"] == 0:
                 relay_apri()
+
+        # Relay automatico: chiudi se reed ok e relay aperto e rete presente
+        # Nota: reed rimosso fisicamente → GPIO18 pull-up → reed sempre 1
+        if stato["reed"] == 1 and stato["relay"] == 1 and stato["grid"] == 1:
+            relay_chiudi()
+            log("Relay chiuso auto — rete presente")
+        # Relay automatico: apri se blackout e relay chiuso
+        elif stato["reed"] == 0 and stato["relay"] == 0:
+            relay_apri()
+            log("Relay aperto auto — reed sganciato")
+
         print("[{}] V={:.2f}V I={:+.4f}A Reed={} Grid={} Relay={}".format(
             ora_str(), stato["v"], stato["a"],
             "AGG" if stato["reed"] else "---",
