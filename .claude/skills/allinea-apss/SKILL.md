@@ -8,7 +8,7 @@ description: >
   riepilogo sessione, documentazione tecnica (.docx), pulizia file obsoleti e
   verifica allineamento repo Git. Accede direttamente al filesystem
   D:\_claudecodeproject\APSS\ tramite il Filesystem MCP.
-version: 1.0
+version: 1.1
 ---
 
 # allinea-apss
@@ -22,6 +22,7 @@ mostrando all'utente l'esito di ogni step prima di procedere al successivo.
 
 - **Root APSS:** `D:\_claudecodeproject\APSS\`
 - **Docs:** `D:\_claudecodeproject\APSS\docs\`
+- **Script doc:** `D:\_claudecodeproject\APSS\docs\scripts\gen_doc_apss.mjs`
 - **Subtree codice:** `ros2_py_ws\` e `rosmaster_project\` (solo doc, MAI modificare codice qui)
 - **Repo GitHub:** `GPwebdesign/APSS` (branch `master`)
 - **Filesystem MCP:** attivo su `D:\_claudecodeproject`
@@ -109,17 +110,50 @@ Poi aggiorna in sequenza:
 ## Step 3 — Documentazione tecnica .docx
 
 > ⚠️ **STOP OBBLIGATORIO** — Prima di procedere, chiedi sempre:
-> "Vuoi aggiornare anche `APSS_Documentazione_Tecnica_vX_X.docx`?
-> (richiede più tempo — genera un nuovo file Word)"
+> "Vuoi aggiornare anche `APSS_Documentazione_Tecnica_vX_X.docx`?"
 >
 > **Attendi la risposta prima di qualsiasi altra azione.**
 > Non procedere allo Step 4 senza aver ricevuto una risposta esplicita (sì/no).
 
-- **Se sì:** leggi lo skill `docx` (`/mnt/skills/public/docx/SKILL.md`),
-  poi genera il nuovo .docx aggiornando versione e data nel registro revisioni.
-  Salva in `D:\_claudecodeproject\APSS\docs\` con il nuovo numero di versione.
-  Chiedi se eliminare la versione precedente.
-- **Se no:** passa allo step 4.
+### Se NO → passa allo Step 4.
+
+### Se SÌ → **delegare a Claude Code** (NON generare in questa chat)
+
+⚠️ **IMPORTANTE:** La generazione del .docx in chat Claude consuma il 70%+ dei
+token Pro per sessione. Va SEMPRE delegata a Claude Code sulla VM o sul PC.
+
+**Procedura da comunicare all'utente:**
+
+1. Apri **Claude Code** in `D:\_claudecodeproject\APSS\docs\scripts\`
+2. Verifica che `npm install docx` sia già stato eseguito (una volta sola)
+3. Usa questo prompt per Claude Code:
+
+```
+Sei in D:\_claudecodeproject\APSS\docs\scripts\
+
+Modifica gen_doc_apss.mjs aggiornando le seguenti sezioni:
+[elencare qui le sezioni cambiate nella sessione con il nuovo contenuto]
+
+Aggiorna il numero versione nella copertina (vX.Y → vX.Z) e aggiungi
+una riga nel registro revisioni con data e descrizione modifiche.
+
+Poi esegui:
+  node gen_doc_apss.mjs
+
+Copia l'output APSS_Documentazione_Tecnica_vX_Z.docx in:
+  D:\_claudecodeproject\APSS\docs\
+```
+
+4. Dopo che Claude Code ha generato il file, aprilo in Word per verifica
+5. Se OK, sposta la versione precedente in `docs\archive\` (o elimina)
+6. Procedi al commit nel workflow normale
+
+**Sezioni tipicamente da aggiornare:**
+- Registro revisioni (sempre)
+- Sezione 3 — Circuito di ricarica (se cambia hw docking)
+- Sezione 8.3 — Stack ROS2 nodi e topic (se aggiunti/modificati nodi)
+- Sezione 9 — Firmware ESP32 (se aggiornato firmware)
+- Sezione 11 — Roadmap (se completate/aggiunte fasi)
 
 ---
 
@@ -180,7 +214,7 @@ Al termine mostra un riepilogo:
 ✅ plan.md aggiornato (vX.Y)
 ✅ architecture.md aggiornato
 ✅ Riepilogo sessione creato: APSS_riepilogo_sessione_XXX.md
-✅/⏭️ Documentazione tecnica [aggiornata / saltata]
+✅/⏭️ Documentazione tecnica [delegata a Claude Code / saltata]
 ✅/⏭️ File obsoleti [rimossi / nessuno]
 ✅ Repo Git allineato
 ```
@@ -192,6 +226,7 @@ Al termine mostra un riepilogo:
 - **MAI modificare file in `rosmaster_project\` o `ros2_py_ws\`** — sono subtree di sola lettura sul PC. Il codice si modifica su gp68-vmware.
 - **Mostra sempre un diff o anteprima** prima di salvare modifiche a file esistenti
 - **Attendi conferma esplicita** per eliminazioni e per il .docx
+- **MAI generare il .docx in questa chat** — delegare sempre a Claude Code
 - **Un step alla volta** — non procedere al successivo senza segnalare l'esito del precedente
 - Se un file non esiste ancora, crealo
 - Se la conversazione non contiene informazioni sufficienti per aggiornare un file, segnalalo e chiedi all'utente
