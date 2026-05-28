@@ -290,7 +290,8 @@ Pogo pin docking → Pad rame robot → Batteria ECO-WORTHY LiFePO4 12.8V 8Ah
 - A riposo (robot non agganciato): NC chiuso → GPIO18 = GND = 0
 - Premuto (robot agganciato): NC aperto → pull-up → GPIO18 = 1
 - ⚠️ Attualmente fissato in posizione "aperto" (robot sempre "agganciato")
-  in attesa di montaggio definitivo sul paraurti robot
+  in attesa di montaggio definitivo sul fronte della docking station,
+  al centro tra le due barre di rame che coincidono con i pogo pin
 
 ---
 
@@ -376,7 +377,8 @@ if stato["v"] > 12.0 and stato["a"] == 0.0:
 
 | Item | Priorità | Note |
 |---|---|---|
-| Montaggio microswitch su paraurti robot | Alta | Attualmente fissato aperto con scotch |
+| Installazione microswitch meccanico (attualmente chiuso con scotch, contatto aperto) sul fronte della docking station, al centro tra le due barre di rame che coincidono con i pogo pin (attivi) sul paraurti del robot | Alta | Microswitch NC — montaggio fisico da completare |
+| Aggiornare webapp docking: sostituire tutti i riferimenti a 'reed' con 'microswitch' | Bassa | `irq_reed()`→`irq_switch()`, `stato["reed"]`→`stato["switch"]`, log messages, HTML dashboard |
 | Soglie XHM603 definitive post-ciclo completo | Media | In calibrazione — valori conservativi attuali |
 | Aggiornamento `battery_node.py` con tabella SoC LiFePO4 | Media | Step 4 Fase D ancora da completare |
 | Coulomb counting via INA219 hawk | Media | Per stima SoC accurata sul plateau |
