@@ -61,16 +61,18 @@ Poi aggiorna in sequenza:
 
 ### 2a. `plan.md`
 - Leggi: `D:\_claudecodeproject\APSS\docs\plan.md`
-- Spunta i task completati nella sessione `[x]`
-- Aggiungi nuovi task emersi
-- Aggiorna la versione nel frontmatter (es. v2.3 → v2.4)
-- Mostra all'utente un diff delle modifiche prima di salvare
+- Identifica le modifiche necessarie (task completati, nuovi task, versione)
+- Delega a Claude Code con prompt preciso:
+  "Apri docs/plan.md. [descrizione modifiche]. git add docs/plan.md &&
+  git commit -m 'docs: plan.md aggiornato' && git push"
+- Attendi commit hash di conferma prima di procedere
 
-### 2b. `architecture.md`
-- Leggi: `D:\_claudecodeproject\APSS\docs\architecture.md`
-- Aggiorna tabelle hardware, topic ROS2, servizi systemd se ci sono novità
-- Aggiorna note ⚠️ se problemi sono stati risolti o ne sono emersi di nuovi
-- Mostra all'utente un diff delle modifiche prima di salvare
+### 2b. `architecture.md` e altri .md in docs/
+- Leggi il file da aggiornare
+- Identifica le modifiche necessarie con precisione (sezione, testo da
+  sostituire, testo nuovo)
+- Delega a Claude Code con prompt preciso che include le modifiche esatte
+- Attendi commit hash di conferma prima di procedere
 
 ### 2c. Riepilogo sessione
 - Cerca file `APSS_riepilogo_sessione_*.md` in `D:\_claudecodeproject\APSS\docs\`
@@ -109,51 +111,24 @@ Poi aggiorna in sequenza:
 
 ## Step 3 — Documentazione tecnica .docx
 
-> ⚠️ **STOP OBBLIGATORIO** — Prima di procedere, chiedi sempre:
-> "Vuoi aggiornare anche `APSS_Documentazione_Tecnica_vX_X.docx`?"
->
-> **Attendi la risposta prima di qualsiasi altra azione.**
-> Non procedere allo Step 4 senza aver ricevuto una risposta esplicita (sì/no).
+> ⚠️ MAI generare il .docx in chat Claude — costa 70%+ token Pro.
+> SEMPRE delegare a Claude Code tramite gen_doc_apss.mjs.
 
-### Se NO → passa allo Step 4.
+Chiedi all'utente: "Vuoi aggiornare anche la documentazione tecnica .docx?"
 
-### Se SÌ → **delegare a Claude Code** (NON generare in questa chat)
-
-⚠️ **IMPORTANTE:** La generazione del .docx in chat Claude consuma il 70%+ dei
-token Pro per sessione. Va SEMPRE delegata a Claude Code sulla VM o sul PC.
-
-**Procedura da comunicare all'utente:**
-
-1. Apri **Claude Code** in `D:\_claudecodeproject\APSS\docs\scripts\`
-2. Verifica che `npm install docx` sia già stato eseguito (una volta sola)
-3. Usa questo prompt per Claude Code:
-
+Se sì: fornisci all'utente questo prompt da incollare in Claude Code:
 ```
-Sei in D:\_claudecodeproject\APSS\docs\scripts\
-
-Modifica gen_doc_apss.mjs aggiornando le seguenti sezioni:
-[elencare qui le sezioni cambiate nella sessione con il nuovo contenuto]
-
-Aggiorna il numero versione nella copertina (vX.Y → vX.Z) e aggiungi
-una riga nel registro revisioni con data e descrizione modifiche.
-
-Poi esegui:
-  node gen_doc_apss.mjs
-
-Copia l'output APSS_Documentazione_Tecnica_vX_Z.docx in:
-  D:\_claudecodeproject\APSS\docs\
+Apri docs/scripts/gen_doc_apss.mjs. Applica le seguenti modifiche:
+[elencare modifiche della sessione]. Aggiorna il numero di revisione
+da vX.Y a vX.Z. Aggiungi riga nel registro revisioni: versione vX.Z,
+data [data], descrizione '[descrizione]'. Esegui:
+node docs/scripts/gen_doc_apss.mjs. Rinomina output in
+APSS_Documentazione_Tecnica_vX_Z.docx. Rimuovi il vecchio .docx.
+Poi: git add docs/ && git commit -m 'docs: vX.Z — [descrizione]'
+&& git push
 ```
 
-4. Dopo che Claude Code ha generato il file, aprilo in Word per verifica
-5. Se OK, sposta la versione precedente in `docs\archive\` (o elimina)
-6. Procedi al commit nel workflow normale
-
-**Sezioni tipicamente da aggiornare:**
-- Registro revisioni (sempre)
-- Sezione 3 — Circuito di ricarica (se cambia hw docking)
-- Sezione 8.3 — Stack ROS2 nodi e topic (se aggiunti/modificati nodi)
-- Sezione 9 — Firmware ESP32 (se aggiornato firmware)
-- Sezione 11 — Roadmap (se completate/aggiunte fasi)
+Se no: passa allo Step 4.
 
 ---
 
@@ -224,6 +199,12 @@ Al termine mostra un riepilogo:
 ## Regole critiche
 
 - **MAI modificare file in `rosmaster_project\` o `ros2_py_ws\`** — sono subtree di sola lettura sul PC. Il codice si modifica su gp68-vmware.
+- **Modifiche ai file .md di progetto**: SEMPRE delegare a Claude Code
+  (zero token chat, accesso diretto filesystem). Claude chat prepara il
+  prompt con le modifiche precise, Claude Code applica e committa,
+  Claude chat verifica il commit hash.
+- **Documentazione tecnica .docx**: SEMPRE via Claude Code su
+  gen_doc_apss.mjs. MAI generare in chat Claude.
 - **Mostra sempre un diff o anteprima** prima di salvare modifiche a file esistenti
 - **Attendi conferma esplicita** per eliminazioni e per il .docx
 - **MAI generare il .docx in questa chat** — delegare sempre a Claude Code
