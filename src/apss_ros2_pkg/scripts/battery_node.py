@@ -126,7 +126,7 @@ class BatteryNode(Node):
             msg.header.stamp = self.get_clock().now().to_msg()
             msg.header.frame_id = 'battery'
             msg.voltage = float(voltage)
-            msg.current = float(current_a)        # negativo=discharge, positivo=charge
+            msg.current = float(current_a)        # positivo=discharge, negativo=charge
             msg.percentage = float(percentage)
             msg.design_capacity = 8.0             # Ah — ECO-WORTHY LiFePO4
             msg.capacity = float('nan')
