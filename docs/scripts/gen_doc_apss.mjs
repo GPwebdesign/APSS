@@ -167,7 +167,7 @@ children.push(
     width: { size: CONTENT_W, type: WidthType.DXA },
     columnWidths: [3000, 6638],
     rows: [
-      ['Revisione', 'v2.4'],
+      ['Revisione', 'v2.5'],
       ['Data', 'Maggio 2026'],
       ['Concept & System Designer', 'GPwebdesign — Gennaro Puzio'],
       ['AI Assistant', 'Anthropic Claude'],
@@ -197,6 +197,7 @@ children.push(genericTable(
     ['v2.2', 'Maggio 2026', 'Batteria LiFePO4 ECO-WORTHY 8Ah. XL4016 ricalibrato. INA219 robot + battery_node. TOF400C tutti verificati OK'],
     ['v2.3', 'Maggio 2026', 'Riformattazione documento. Stack ROS2, nodi batteria, TOF, oled. Sviluppo futuro ripristinato'],
     ['v2.4', 'Maggio 2026', 'Circuito ricarica definitivo LiFePO4 (XL4016 1.5A, T3.15A, XHM603 soglie confermate). Firmware ESP32 v2.1. battery_node v2.0 coulomb counting. Dati ciclo ricarica verificati. USB device naming udev'],
+    ['v2.5', 'Maggio 2026', 'Correzione INA219 robot: distinzione PSU esterna vs batteria reale. Aggiornamento roadmap firmware v2.2 microswitch.'],
   ],
   [1200, 1600, 6838]
 ));
@@ -341,7 +342,7 @@ children.push(genericTable(
     ['LiDAR', 'Slamtec RPLIDAR A1M8', '360° — range 0.15-12m — /dev/rplidar (symlink udev) — offset fisico 90°'],
     ['Sensori TOF', '3x TOF400C VL53L1X', 'Frontale 0° (CH2) + sx 30° (CH3) + dx 30° (CH4) — tutti verificati OK (0x29)'],
     ['Multiplexer I2C', 'TCA9548A — indirizzo 0x70', 'Gestisce 3x TOF400C su CH2/CH3/CH4'],
-    ['Monitor alimentazione', 'INA219 — indirizzo 0x40', 'In serie al positivo — shunt R100 — posizionato DOPO DD32AJ4B (misura tensione regolata ~12.10V)'],
+    ['Monitor alimentazione', 'INA219 — indirizzo 0x40', 'In serie al positivo — shunt R100 — posizionato DOPO DD32AJ4B. Con batteria LiFePO4 reale segue la tensione reale (<12.0V anche a batteria carica)'],
     ['Display OLED', 'SSD1306 128x64 I2C — 0x3C', 'IP, tensione, corrente, potenza — oled_node.py'],
     ['Batteria di bordo', 'ECO-WORTHY LiFePO4 12.8V 8Ah (ECO-LFPYZ1208)', '152x65x96mm — terminali F2 — 1.05kg — sostituisce Yuasa YTZ10S AGM 8.6Ah'],
   ],
@@ -349,7 +350,7 @@ children.push(genericTable(
 ));
 
 children.push(emptyPara());
-children.push(noteBox('Nota architetturale INA219 robot: l\'INA219 è posizionato dopo il convertitore DD32AJ4B, non direttamente sulla batteria ECO-WORTHY. Misura quindi la tensione regolata (~12.10V costanti) e non la tensione reale della batteria. La stima SoC da tensione INA219 è inutilizzabile. Il battery_node.py usa coulomb counting come metodo primario di stima SoC.'));
+children.push(noteBox('Nota architetturale INA219 robot: L\'INA219 è posizionato dopo il convertitore DD32AJ4B. Con alimentazione da PSU esterna (20V) al posto della batteria, misura la tensione regolata dal DD32AJ4B (~12.10V stabili). Con batteria LiFePO4 reale collegata, l\'INA219 legge stabilmente sotto 12.0V anche a batteria carica e SEGUE la tensione reale della batteria. BatteryState.voltage è quindi un segnale utile per soglie e ancoraggio SoC. Il battery_node.py usa coulomb counting come metodo primario di stima SoC.'));
 
 children.push(h2('4.2 Mappatura Motori Mecanum — Verificata Fisicamente'));
 children.push(genericTable(
@@ -389,7 +390,7 @@ children.push(genericTable(
     ['Indirizzo I2C', '0x40'],
     ['Shunt', 'R100 (0.1Ω)'],
     ['Libreria', 'adafruit-circuitpython-ina219'],
-    ['Posizione nella catena', 'Dopo DD32AJ4B — misura tensione regolata ~12.10V stabili, non tensione batteria'],
+    ['Posizione nella catena', 'Dopo DD32AJ4B — con PSU esterna misura ~12.10V stabili; con batteria LiFePO4 reale segue la tensione reale (<12.0V anche a batteria carica). BatteryState.voltage utile per soglie e ancoraggio SoC'],
     ['Convenzione corrente', 'Positiva = DISCHARGING (robot assorbe), Negativa = CHARGING (docking)'],
     ['Potenza', 'Calcolata come V × I (registro power non calibrato)'],
     ['Assorbimento idle misurato', '~0.45–0.60 A / ~5.5–7.7 W (a seconda dei carichi attivi)'],
@@ -648,7 +649,8 @@ children.push(genericTable(
 children.push(h2('9.2 Roadmap Firmware v2.2'));
 [
   'relay_chiudi() e relay_apri() devono loggare automaticamente V/A/W INA219 al momento esatto di avvio e stop ricarica',
-  'Installazione microswitch meccanico sul paraurti robot (attualmente fissato in posizione aperta con scotch)',
+  'Installazione microswitch meccanico (attualmente chiuso con scotch, contatto aperto) sul fronte della docking station, al centro tra le due barre di rame che coincidono con i pogo pin (attivi) sul paraurti del robot',
+  'Aggiornare webapp docking: sostituire tutti i riferimenti a \'reed\' con \'microswitch\'',
 ].forEach(b => children.push(bullet(b)));
 
 // ─── SEZ 10 — CONFIG SOFTWARE RPi ─────────────────────────────────────────────
@@ -770,7 +772,7 @@ children.push(para([txt('Con questa architettura il sistema APSS diventerebbe co
 // ─── FOOTER ───────────────────────────────────────────────────────────────────
 children.push(emptyPara());
 children.push(new Paragraph({
-  children: [txt('Documento v2.4 — Maggio 2026 — GPwebdesign — Gennaro Puzio — Uso interno', { size: 16, color: C.DGRAY, italics: true })],
+  children: [txt('Documento v2.5 — Maggio 2026 — GPwebdesign — Gennaro Puzio — Uso interno', { size: 16, color: C.DGRAY, italics: true })],
   alignment: AlignmentType.CENTER,
   spacing: { before: 240, after: 80 },
   border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.LBLUE, space: 4 } },
@@ -825,7 +827,7 @@ const doc = new Document({
       default: new Header({
         children: [new Paragraph({
           children: [
-            txt('APSS — Documentazione Tecnica v2.4', { size: 16, color: C.DGRAY, italics: true }),
+            txt('APSS — Documentazione Tecnica v2.5', { size: 16, color: C.DGRAY, italics: true }),
             new TextRun({ text: '\t', font: FONT }),
             txt('GPwebdesign — Uso interno', { size: 16, color: C.DGRAY, italics: true }),
           ],
@@ -840,7 +842,7 @@ const doc = new Document({
         children: [new Paragraph({
           children: [
             txt('Confidenziale — Uso interno GPwebdesign', { size: 16, color: C.DGRAY }),
-            new TextRun({ text: '\t\tv2.4 — Maggio 2026', font: FONT, size: 16, color: C.DGRAY, italics: true }),
+            new TextRun({ text: '\t\tv2.5 — Maggio 2026', font: FONT, size: 16, color: C.DGRAY, italics: true }),
           ],
           tabStops: [{ type: 'right', position: CONTENT_W }],
           border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.LBLUE, space: 4 } },
@@ -853,6 +855,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then(buffer => {
-  fs.writeFileSync('/mnt/user-data/outputs/APSS_Documentazione_Tecnica_v2_4.docx', buffer);
-  console.log('Done: APSS_Documentazione_Tecnica_v2_4.docx');
+  const outPath = new URL('../APSS_Documentazione_Tecnica_v2_5.docx', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  fs.writeFileSync(outPath, buffer);
+  console.log('Done:', outPath);
 });

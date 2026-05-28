@@ -40,3 +40,7 @@ L'output va salvato in D:\_claudecodeproject\APSS\docs\ come APSS_Documentazione
 | File | Versione | Data |
 |---|---|---|
 | APSS_Documentazione_Tecnica_v2_4.docx | v2.4 | Maggio 2026 |
+
+### Note ambiente
+- Output path aggiornato per Windows: `../APSS_Documentazione_Tecnica_v2_4.docx` (relativo a docs/)
+- Su Linux/WSL era: `/mnt/user-data/outputs/` (sandbox Claude Code)
