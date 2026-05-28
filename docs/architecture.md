@@ -77,7 +77,7 @@ Installato in serie al positivo tra il regolatore DD32AJ4B e la scheda Yahboom (
 | Picco motori (memoria battery_node) | ~2.14 A / ~25.7 W |
 | Caduta su shunt | 60 mV @ 0.6A → 200 mV @ 2A |
 
-> ⚠️ **Nota architetturale critica:** l'INA219 hawk è posizionato **dopo** il convertitore DD32AJ4B. Misura quindi la tensione **regolata** (~12.10V stabili) e non la tensione reale della batteria ECO-WORTHY. La stima SoC da tensione INA219 è inutilizzabile — il `battery_node.py` usa **coulomb counting** (integrazione corrente nel tempo) come metodo primario di stima SoC.
+> ⚠️ **Nota architetturale critica:** L'INA219 è posizionato dopo il convertitore DD32AJ4B. Con alimentazione da PSU esterna (20V) al posto della batteria, misura la tensione regolata dal DD32AJ4B (~12.10V stabili). Con batteria LiFePO4 reale collegata, l'INA219 legge stabilmente sotto 12.0V anche a batteria carica e SEGUE la tensione reale della batteria. BatteryState.voltage è quindi un segnale utile per soglie e ancoraggio SoC.
 
 ---
 
@@ -106,10 +106,10 @@ Installato in serie al positivo tra il regolatore DD32AJ4B e la scheda Yahboom (
 | Punto | A vuoto | Sotto carico (0.45–0.60 A) | Caduta |
 |-------|---------|---------------------------|--------|
 | Terminali batteria ECO-WORTHY | — | 13.09 V | (riferimento) |
-| Uscita DD32AJ4B (tester) | 12.16 V | 11.70 V | 0.46 V (load regulation) |
+| Uscita DD32AJ4B (tester) | 12.16 V | ~11.84V (batteria LiFePO4 reale, idle ~0.5A, misurato 28/05/2026) | 0.46 V (load regulation) |
 | Lettura INA219 (a valle shunt) | — | 11.48–11.68 V | +0.06 V (shunt @ 0.6A) |
 
-**Diagnosi**: la caduta di ~0.46 V dall'uscita DD32AJ4B sotto carico è dovuta alla regolazione di carico del convertitore (load regulation mediocre dei buck multi-uscita economici). Lo shunt INA219 contribuisce solo ~60 mV @ 0.6 A.
+**Diagnosi**: I valori stabili ~12.10V si osservano solo con PSU 20V al posto della batteria. Con batteria reale i valori seguono la curva di scarica LiFePO4.
 
 ### Scelta del setpoint trimmer (Maggio 2026)
 
@@ -180,7 +180,7 @@ Aggiornato per batteria ECO-WORTHY LiFePO4 12.8V 8Ah (ECO-LFPYZ1208).
 | Tabella tensione LiFePO4 | VOLTAGE_TABLE_LIFEPO4 mantenuta come riferimento futuro — NON usata per SoC (INA219 misura tensione regolata DD32AJ4B ~12.10V stabili) |
 | Log | `[BATTERY] V=...V I=...A P=...W SoC=...% status=... [coulomb]` |
 
-> ⚠️ La stima SoC da tensione INA219 hawk è inutilizzabile perché misura la tensione regolata dal DD32AJ4B (~12.10V costanti), non la tensione reale della batteria. Il coulomb counting è il metodo corretto in questa architettura.
+> ⚠️ Il coulomb counting è il metodo primario di stima SoC sul plateau LiFePO4 (curva di scarica piatta, tensione poco informativa). La tensione INA219 è utilizzabile come segnale di ancoraggio agli estremi (fine carica, ginocchio finale) e per le soglie voltage-based di safety_node. La stima da tensione era considerata inutilizzabile assumendo che INA219 misurasse la tensione regolata DD32AJ4B (~12.10V costanti): questa assunzione è valida solo con PSU esterna al posto della batteria, non in operatività normale.
 
 ### TF tree
 ```
@@ -359,7 +359,8 @@ Documentazione completa firmware: `docs/doc_firmware.md`.
 #### Roadmap firmware v2.2
 
 - `relay_chiudi()` e `relay_apri()` devono loggare automaticamente V/A/W INA219 al momento esatto di avvio e stop ricarica
-- Installazione microswitch meccanico sul paraurti robot (attualmente fissato con scotch)
+- Installazione microswitch meccanico (attualmente chiuso con scotch, contatto aperto) sul fronte della docking station, al centro tra le due barre di rame che coincidono con i pogo pin (attivi) sul paraurti del robot
+- Aggiornare webapp docking: sostituire tutti i riferimenti a 'reed' con 'microswitch'
 
 ---
 
