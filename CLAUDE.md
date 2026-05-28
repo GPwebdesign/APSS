@@ -114,4 +114,4 @@ Tutti i nuovi script di test vanno in `rosmaster_project/test_files/`
 - `@docs/architecture.md` — architettura completa hardware e software
 - `@docs/plan.md` — roadmap con stato avanzamento (v2.3)
 - `APSS_memorie.md` — memorie di sessione (v1.2)
-- Documentazione tecnica completa: `APSS_Documentazione_Tecnica_v2_1.docx`
+- Documentazione tecnica completa: `APSS_Documentazione_Tecnica_v2_5.docx`
