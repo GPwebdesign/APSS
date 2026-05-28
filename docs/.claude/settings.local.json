@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node gen_doc_apss.mjs)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git reset *)"
+    ]
+  }
+}
