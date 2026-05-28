@@ -1,6 +1,6 @@
 # APSS — Piano di Sviluppo
 
-> Aggiornato: Maggio 2026 — v2.8  
+> Aggiornato: Maggio 2026 — v2.9  
 > Spunta le checkbox man mano che completi ogni task.
 
 ---
@@ -63,7 +63,7 @@
 - [ ] Sostituire fusibile T1.5A → T3A slow-blow (per alzare CC a 2A)
 - [ ] Ricalibrazione CC a 2A con monitoraggio temperatura
 - [ ] Verificare soglie XHM603 definitive dopo ciclo completo
-- [ ] Installazione fisica ECO-WORTHY nel robot
+- [x] Installazione fisica ECO-WORTHY nel robot
 - [ ] Test ciclo carica/scarica completo con robot agganciato
 
 ### NotebookLM (Maggio 2026)
@@ -115,6 +115,8 @@
 - [x] **3 soglie ricarica Fase 1 (voltage based) definite**: 🟡 LOW 11.50V (~30% SoC) / 🟠 CRITICAL 11.20V (~15% SoC) / 🔴 EMERGENCY 10.80V (~5% SoC)
 - [ ] Fase 2 ricarica: `battery_node` registra V/I/t durante uso operativo per costruire tabella SoC LiFePO4 empirica
 - [ ] Fase 2 ricarica: migrazione soglie da voltage a `BatteryState.percentage`
+- [x] discharge_logger.py + morsetti_logger.py creati in test_files/ — caratterizzazione scarica LiFePO4 avviata (28 Mag 2026)
+- [ ] Analisi dati scarica e taratura soglie voltage-based empiriche (dopo ciclo completo)
 
 ---
 
@@ -133,6 +135,7 @@
 - [ ] Beeper SOS morse (···---···) via scheda Yahboom — 3 ripetizioni a distanza 3s
 - [ ] Architettura estensibile: predisporre per futuri allarmi TOF, encoder fault, ecc.
 - [ ] Publisher `/apss/alarm` (std_msgs/String) — consumato da nodi interessati
+- [ ] alarm_node.py — dispatcher allarmi (beeper Yahboom + OLED) — dopo safety_node
 
 ### Fase 1 — TOF400C VL53L1X (obstacle avoidance software)
 - [x] Fix TOF destro CH4 — sensore sostituito, tutti e 3 verificati OK (0x29)
