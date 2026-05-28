@@ -3,6 +3,18 @@
 
 ---
 
+## Sessione 28 Maggio 2026
+- Avviato ciclo di caratterizzazione scarica batteria LiFePO4 ECO-WORTHY: discharge_logger.py e morsetti_logger.py creati in rosmaster_project/test_files/, logger attivo su hawk (discharge_20260528_2137.csv, bande 300/60/10s)
+- CORREZIONE critica INA219 hawk: i ~12.10V "stabili" in documentazione sono uscita DD32AJ4B SOLO con PSU 20V al posto batteria; con batteria LiFePO4 reale INA219 legge <12.0V e segue la tensione reale → BatteryState.voltage è segnale utile, soglie voltage-based valide
+- Segno corrente INA219 confermato da coulomb counting battery_node.py: POSITIVO=DISCHARGING, NEGATIVO=CHARGING. Commento sbagliato su msg.current corretto (commit su ros2_py_ws)
+- architecture.md aggiornato (4 fix INA219/microswitch, commit 7543104); doc_firmware.md aggiornato (commit bcfbeca); APSS_Documentazione_Tecnica_v2_5.docx generata (commit ae5bcd3, v2_4 e v2_4_2 rimossi)
+- skill allinea-apss v1.1: .md e .docx SEMPRE via Claude Code (mai in chat) — commit 83286f7
+- Architettura safety_node/alarm_node confermata: safety_node valuta soglie, alarm_node reagisce (beeper+OLED)
+- safety_node.py in attesa dati scarica empirici; alarm_node.py dopo safety_node
+- sensor.power INA219 non usare (riporta mW non W con shunt R100); potenza calcolata come V*|I|
+
+---
+
 ## Sessione 23 Maggio 2026
 - Bug video MainScreen risolto: TCP server bind su `0.0.0.0` invece di IP specifico — connessione con IP default senza passare da Settings
 - APK Android v2.1: `ModuleNotFoundError: No module named 'filetype'` risolto aggiungendo `filetype` ai requirements buildozer
