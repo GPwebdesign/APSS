@@ -1,0 +1,6 @@
+# Misure manuali al tester sui morsetti della batteria ECO-WORTHY. Correlare per timestamp con discharge_*.csv per stimare offset V_ina vs V_reale. Convenzione i_ina: POSITIVO=discharging, NEGATIVO=charging.
+timestamp_iso,v_morsetti,nota
+2026-05-28T21:37:30+02:00,13.350,avvio_discharge
+2026-05-28T21:47:37+02:00,13.190,avvio_discharge
+2026-05-28T22:00:17+02:00,13.190,robot fermo solo
+2026-06-02T19:27:39+02:00,13.340,avvio_discharge
