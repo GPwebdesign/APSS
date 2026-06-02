@@ -1,0 +1,66 @@
+global:
+  publish_rate_hz: 0.5
+  grace_period_s: 30
+  charging_topic: /battery
+  charging_field: current
+  charging_threshold: -0.05
+
+rules:
+  - id: battery_voltage
+    source: battery
+    topic: /battery
+    msg_type: sensor_msgs/BatteryState
+    field: voltage
+    type: threshold_low
+    active_when_charging: false
+    watchdog_timeout_s: 10
+    staleness_s: 10
+    thresholds:
+      - value: 11.50
+        level: LOW
+        message: "Battery voltage below LOW threshold"
+      - value: 11.20
+        level: CRITICAL
+        message: "Battery voltage below CRITICAL threshold"
+      - value: 10.80
+        level: EMERGENCY
+        message: "Battery voltage below EMERGENCY threshold"
+
+  - id: tof_front_frozen
+    source: tof_front
+    topic: /tof/front
+    msg_type: sensor_msgs/Range
+    field: range
+    type: frozen
+    frozen_samples: 5
+    frozen_tolerance: 0.001
+    watchdog_timeout_s: 5
+    staleness_s: 5
+    level: ERROR
+    message: "TOF front frozen — possible I2C lockup"
+
+  - id: tof_left_frozen
+    source: tof_left
+    topic: /tof/left
+    msg_type: sensor_msgs/Range
+    field: range
+    type: frozen
+    frozen_samples: 5
+    frozen_tolerance: 0.001
+    watchdog_timeout_s: 5
+    staleness_s: 5
+    level: ERROR
+    message: "TOF left frozen — possible I2C lockup"
+
+  - id: tof_right_frozen
+    source: tof_right
+    topic: /tof/right
+    msg_type: sensor_msgs/Range
+    field: range
+    type: frozen
+    frozen_samples: 5
+    frozen_tolerance: 0.001
+    watchdog_timeout_s: 5
+    staleness_s: 5
+    level: ERROR
+    message: "TOF right frozen — possible I2C lockup"

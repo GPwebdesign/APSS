@@ -27,7 +27,12 @@ install(PROGRAMS
   scripts/obstacle_detector_node.py
   scripts/navigation_controller_node.py
   scripts/camera_publisher.py
+  scripts/safety_node.py
   DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 install(DIRECTORY
