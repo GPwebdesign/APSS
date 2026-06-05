@@ -36,9 +36,10 @@ Ogni service systemd deve fare source esplicito.
 
 | Nodo | Comando esatto | File sorgente | Stato |
 |------|---------------|---------------|-------|
-| `oled_node` | `ros2 run apss_ros2_pkg oled_node.py` | `scripts/oled_node.py` | ✅ funzionante |
+| `oled_node` | `ros2 run apss_ros2_pkg oled_node.py` | `scripts/oled_node.py` | ✅ funzionante — subscriber `/apss/oled_alert` (scrolling messaggi allarme sulla prima riga) |
 | `battery_node` | `ros2 run apss_ros2_pkg battery_node.py` | `scripts/battery_node.py` | ✅ funzionante |
-| `safety_node` | `ros2 run apss_ros2_pkg safety_node.py` | `scripts/safety_node.py` | 🔲 pianificato |
+| `safety_node` | `ros2 run apss_ros2_pkg safety_node.py` | `scripts/safety_node.py` | ✅ funzionante |
+| `alarm_node` | `ros2 run apss_ros2_pkg alarm_node.py` | `scripts/alarm_node.py` | 🔲 pianificato |
 | `obstacle_detector_node` | `ros2 run apss_ros2_pkg obstacle_detector_node.py` | `scripts/obstacle_detector_node.py` | 🔲 da sviluppare |
 | `navigation_controller_node` | `ros2 run apss_ros2_pkg navigation_controller_node.py` | `scripts/navigation_controller_node.py` | 🔲 da sviluppare |
 | `camera_publisher` | `ros2 run apss_ros2_pkg camera_publisher.py` | `scripts/camera_publisher.py` | 🔲 da sviluppare |
@@ -57,11 +58,25 @@ Ogni service systemd deve fare source esplicito.
 |-------|------|-----------|-------------|
 | `/battery` | `sensor_msgs/BatteryState` | `battery_node` | `oled_node`, `safety_node` |
 | `/battery/stats` | `apss_ros2_pkg/BatteryStats` | `battery_node` | — |
-| `/apss/alarm` | `std_msgs/String` | `safety_node` (pianificato) | (futuri) |
+| `/apss/alarm` | `std_msgs/String` (JSON) | `safety_node` | `alarm_node`, `rosmaster_main.py` |
+| `/apss/oled_alert` | `std_msgs/String` (JSON) | `alarm_node` | `oled_node` |
 | `/scan` | `sensor_msgs/LaserScan` | `rplidar_node` | `slam_toolbox` |
 | `/odom` | `nav_msgs/Odometry` | `rosmaster_main.py` (thread_odom) | `slam_toolbox` |
 | `/cmd_vel` | `geometry_msgs/Twist` | `avoidance_node` (pianificato) | `rosmaster_main.py` |
 | `/tof/front` `/tof/left` `/tof/right` | `sensor_msgs/Range` | `tof_node` (pianificato) | `avoidance_node` |
+
+## File di configurazione
+
+| File | Path nel package | Caricato da |
+|------|-----------------|-------------|
+| `safety_rules.yaml` | `config/safety_rules.yaml` | `safety_node.py`, `alarm_node.py` |
+
+Il file contiene due sezioni principali:
+- `global` + `rules`: regole di rilevamento allarmi per safety_node
+- `alarm_node`: configurazione reazioni (lingua, template vocali, pattern, log)
+
+Installato via CMakeLists.txt con `install(DIRECTORY config ...)`.
+Caricato a runtime via `get_package_share_directory('apss_ros2_pkg')`.
 
 ## Servizi systemd
 
