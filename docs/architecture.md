@@ -73,9 +73,11 @@ Installato in serie al positivo tra il regolatore DD32AJ4B e la scheda Yahboom (
 | Libreria | adafruit-circuitpython-ina219 |
 | Convenzione corrente | Positiva = DISCHARGING (robot assorbe), Negativa = CHARGING (docking) |
 | Potenza | Calcolata come V × I (registro power non calibrato) |
-| Assorbimento idle misurato | ~0.45–0.60 A / ~5.30–6.45 W (Maggio 2026) |
+| Assorbimento idle misurato | ~0.45–0.65 A / ~5.3–7.7 W (campionamento continuo 28/05–04/06/2026) |
 | Picco motori (memoria battery_node) | ~2.14 A / ~25.7 W |
 | Caduta su shunt | 60 mV @ 0.6A → 200 mV @ 2A |
+
+> ⚠️ **Offset INA219 hawk vs terminali batteria reali: +1.5V medio** (misurato empiricamente su 273 campioni, ciclo scarica completo 28/05–04/06/2026). NON confondere con l'offset +0.34V dell'INA219 docking station — sono sensori in posizioni diverse della catena.
 
 > ⚠️ **Nota architetturale critica:** L'INA219 è posizionato dopo il convertitore DD32AJ4B. Con alimentazione da PSU esterna (20V) al posto della batteria, misura la tensione regolata dal DD32AJ4B (~12.10V stabili). Con batteria LiFePO4 reale collegata, l'INA219 legge stabilmente sotto 12.0V anche a batteria carica e SEGUE la tensione reale della batteria. BatteryState.voltage è quindi un segnale utile per soglie e ancoraggio SoC.
 
@@ -130,16 +132,13 @@ Il robot autonomo deve decidere quando rientrare al docking. **Fase 1**: trigger
 
 | Livello | Tensione INA219 (`/battery.voltage`) | SoC stimato | Azione del robot |
 |---------|--------------------------------------|-------------|------------------|
-| 🟡 LOW | ~11.50 V | ~30% | Completa il task corrente, poi rientra al docking |
-| 🟠 CRITICAL | ~11.20 V | ~15% | Interrompe il task, rientra immediatamente al docking |
-| 🔴 EMERGENCY | ~10.80 V | ~5% | Stop ovunque, segnala emergenza, attende recupero manuale |
+| 🟡 LOW | 11.45 V | ~30% | Completa il task corrente, poi rientra al docking |
+| 🟠 CRITICAL | 11.20 V | ~15% | Interrompe il task, rientra immediatamente al docking |
+| 🔴 EMERGENCY | 10.20 V | ~5% | Stop ovunque, segnala emergenza, attende recupero manuale |
 
 ### Note di taratura
 
-- I valori sopra sono **stime iniziali conservative**, non calibrati empiricamente sulla LiFePO4 ECO-WORTHY specifica
-- La curva di scarica LiFePO4 è piatta tra 90% e 20% SoC e crolla rapidamente sotto il 10%
-- La caduta sulla catena DD32AJ4B varia con la corrente — le soglie sono pensate per condizioni di pattugliamento (~0.6–1.0 A media)
-- Il margine 11.50 → 10.80 V corrisponde a circa 90 secondi di operatività in pattugliamento, sufficiente per il rientro
+Soglie calibrate empiricamente su ciclo scarica completo 28/05–04/06/2026 (273 campioni, discharge_20260528_2137.csv). Curva scarica: plateau ~11.84V V_ina → pre-ginocchio ~11.34V → crollo a ~10.0V. Il ginocchio reale si manifesta sotto 10.20V V_ina (V_reale ~11.7V ai morsetti).
 
 ### Roadmap calibrazione (Fase 2)
 
@@ -160,8 +159,10 @@ Il robot autonomo deve decidere quando rientrare al docking. **Fase 1**: trigger
 | `apss_robot.urdf.xml` | Descrizione robot (URDF) |
 | `apss_lidar.launch.py` | Launch: RPLIDAR + robot_state_publisher + tf + slam_toolbox + RViz2 |
 | `rviz/apss.rviz` | Configurazione RViz2 |
-| `oled_node.py` | Nodo OLED SSD1306 — layout: APSS / IP / V grande (asterisco se lettura diretta INA219) / A W. Subscriber `/battery` + fallback INA219 diretto con watchdog 5s |
+| `oled_node.py` | Nodo OLED SSD1306 — layout: APSS / IP / V grande (asterisco se lettura diretta INA219) / A W. Subscriber `/battery` + fallback INA219 diretto con watchdog 5s. Subscriber `/apss/oled_alert` — scrolling messaggi allarme sulla prima riga |
 | `battery_node.py` | Monitor INA219 v2.0 — pubblica `/battery` (BatteryState, LiFePO4, coulomb counting) + `/battery/stats` ogni 2s |
+| `safety_node.py` | **Operativo** — Architettura a regole dichiarative YAML (safety_rules.yaml). Pubblica `/apss/alarm` (std_msgs/String JSON) a 0.5Hz. Grace period 30s al boot. 4 regole attive: battery_voltage (threshold_low, 3 livelli) + tof_front/left/right_frozen |
+| `alarm_node.py` | **Pianificato** — dispatcher reazioni: voce piper-tts (italiano/inglese configurabile), publisher `/apss/oled_alert`, storico 20 entry in logs/alarm_history.json |
 | `tof_node.py` | (pianificato) Legge TCA9548A CH2/CH3/CH4 — pubblica `/tof/*` |
 | `avoidance_node.py` | (pianificato) Obstacle avoidance — subscribe `/tof/*` → pubblica `/cmd_vel` |
 
@@ -182,6 +183,54 @@ Aggiornato per batteria ECO-WORTHY LiFePO4 12.8V 8Ah (ECO-LFPYZ1208).
 
 > ⚠️ Il coulomb counting è il metodo primario di stima SoC sul plateau LiFePO4 (curva di scarica piatta, tensione poco informativa). La tensione INA219 è utilizzabile come segnale di ancoraggio agli estremi (fine carica, ginocchio finale) e per le soglie voltage-based di safety_node. La stima da tensione era considerata inutilizzabile assumendo che INA219 misurasse la tensione regolata DD32AJ4B (~12.10V costanti): questa assunzione è valida solo con PSU esterna al posto della batteria, non in operatività normale.
 
+### safety_node.py — v1.0 (Giugno 2026)
+
+Nodo orchestratore allarmi. Architettura a regole dichiarative YAML — zero codice per aggiungere nuove sorgenti di allarme.
+
+| Parametro | Valore |
+|-----------|--------|
+| File config | safety_rules.yaml in config/ del package |
+| Publish rate | 0.5 Hz (ogni 2s) |
+| Grace period | 30s al boot |
+| Topic output | /apss/alarm (std_msgs/String JSON) |
+| Tipi di regola | threshold_low, threshold_high, frozen, boolean |
+| Watchdog | staleness + ever_received per ogni topic |
+
+Regole attive:
+- battery_voltage: threshold_low, 3 livelli (LOW=11.45V, CRITICAL=11.20V, EMERGENCY=10.20V)
+- tof_front_frozen, tof_left_frozen, tof_right_frozen: frozen, 5 campioni, tolleranza 0.001m
+
+Formato /apss/alarm:
+```json
+{
+  "ts": "2026-06-02 21:37:42",
+  "charging": false,
+  "alarms": [
+    {
+      "source": "battery",
+      "level": "LOW",
+      "type": "threshold_low",
+      "value": 11.42,
+      "threshold": 11.45,
+      "message": "Battery voltage below LOW threshold"
+    }
+  ]
+}
+```
+
+### alarm_node.py — pianificato (Giugno 2026)
+
+Dispatcher reazioni agli allarmi pubblicati da safety_node.
+
+| Parametro | Valore |
+|-----------|--------|
+| Topic input | /apss/alarm |
+| Voce | piper-tts, lingua configurabile (it/en) in safety_rules.yaml |
+| Template | Dinamici con variabili {source}, {value}, {message} |
+| Topic OLED | /apss/oled_alert (std_msgs/String JSON) |
+| Storico | logs/alarm_history.json, FIFO 20 entry |
+| Livelli | LOW (ogni 30s), CRITICAL (ogni 10s), EMERGENCY (SOS), ERROR (ogni 60s) |
+
 ### TF tree
 ```
 map → odom (statico, da launch)
@@ -195,9 +244,10 @@ base_footprint → base_link → [laser_frame, camera_frame, ...]
 |-------|------|-----------|-------------|
 | `/scan` | `sensor_msgs/LaserScan` | rplidar_node | slam_toolbox |
 | `/odom` | `nav_msgs/Odometry` | thread_odom (rosmaster_main.py) | slam_toolbox |
-| `/battery` | `sensor_msgs/BatteryState` | battery_node v2.0 | oled_node ✅, safety_node (pianificato) |
+| `/battery` | `sensor_msgs/BatteryState` | battery_node v2.0 | oled_node ✅, safety_node ✅ |
 | `/battery/stats` | `apss_ros2_pkg/BatteryStats` | battery_node | — |
-| `/apss/alarm` | `std_msgs/String` | safety_node (pianificato) | (consumer futuri) |
+| `/apss/alarm` | `std_msgs/String` (JSON) | safety_node | alarm_node, rosmaster_main.py |
+| `/apss/oled_alert` | `std_msgs/String` (JSON) | alarm_node | oled_node |
 | `/apss/mode` | `std_msgs/String` | (futuro) | oled_node |
 | `/apss/sensors/env` | `std_msgs/String` JSON | (futuro) | oled_node |
 | `/cmd_vel` | `geometry_msgs/Twist` | (pianificato: avoidance_node / nav2) | rosmaster_main.py |
