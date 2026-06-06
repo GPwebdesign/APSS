@@ -3,6 +3,27 @@
 
 ---
 
+## Sessione 06 Giugno 2026
+- Documentazione allineata: apss_ros2.md, CLAUDE.md, plan.md, architecture.md aggiornati con safety_node operativo, alarm_node pianificato, soglie empiriche LiFePO4, offset INA219 hawk +1.5V
+- Pianificazione alarm_node completata: architettura dispatcher, piper-tts voce italiana/inglese configurabile da safety_rules.yaml, template dinamici {source}/{value}/{message}, /apss/oled_alert con scrolling prima riga OLED, storico FIFO 20 entry in logs/alarm_history.json
+- Beeper: decisione di usare uscita audio RPi (jack 3.5mm) con piper-tts invece di beeper hardware GPIO — più flessibile, zero componenti aggiuntivi
+- Schema circuitale beeper attivo GPIO generato (APSS-DWG-003) ma non implementato — sostituito da soluzione audio
+- alarm_node_plan.md creato in docs/
+
+---
+
+## Sessione 02-05 Giugno 2026
+- safety_node.py implementato e testato su hawk — operativo ✅
+- Architettura a regole dichiarative YAML (safety_rules.yaml): 4 regole attive (battery_voltage + tof_front/left/right_frozen), grace period 30s verificato, topic /apss/alarm JSON operativo
+- CMakeLists.txt aggiornato: install(DIRECTORY config) — fix slash critico (config vs config/)
+- Ciclo scarica LiFePO4 completato: 273 campioni 28/05-04/06/2026
+- CORREZIONE CRITICA offset INA219 hawk: +1.5V medio vs terminali reali (non +0.34V — quello è la docking station durante ricarica)
+- Soglie voltage-based calibrate empiricamente: LOW 11.50→11.45V, CRITICAL 11.20V invariato, EMERGENCY 10.80→10.20V
+- safety_rules.yaml aggiornato con soglie empiriche (commit 4bff64d)
+- Tutti i repo allineati: ros2_py_ws commit 4bff64d, APSS master aggiornato
+
+---
+
 ## Sessione 28 Maggio 2026
 - Avviato ciclo di caratterizzazione scarica batteria LiFePO4 ECO-WORTHY: discharge_logger.py e morsetti_logger.py creati in rosmaster_project/test_files/, logger attivo su hawk (discharge_20260528_2137.csv, bande 300/60/10s)
 - CORREZIONE critica INA219 hawk: i ~12.10V "stabili" in documentazione sono uscita DD32AJ4B SOLO con PSU 20V al posto batteria; con batteria LiFePO4 reale INA219 legge <12.0V e segue la tensione reale → BatteryState.voltage è segnale utile, soglie voltage-based valide
