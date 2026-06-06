@@ -64,3 +64,43 @@ rules:
     staleness_s: 5
     level: ERROR
     message: "TOF right frozen — possible I2C lockup"
+
+alarm_node:
+  language: it          # it | en
+  voice_enabled: true
+  log_path: ~/Workspaces/rosmaster_project/logs/alarm_history.json
+  log_max_entries: 20
+  alsa_device: plughw:Headphones
+  voice_models:
+    it: ~/piper-voices/it_IT-paola-medium.onnx
+    en: ~/piper-voices/en_US-amy-medium.onnx
+
+  source_labels:
+    it:
+      tof_front: "sensore prossimità frontale"
+      tof_left: "sensore prossimità sinistra"
+      tof_right: "sensore prossimità destra"
+      battery: "batteria"
+    en:
+      tof_front: "front proximity sensor"
+      tof_left: "left proximity sensor"
+      tof_right: "right proximity sensor"
+      battery: "battery"
+
+  templates:
+    it:
+      LOW: "Attenzione {source_label}. Valore attuale {value}."
+      CRITICAL: "Attenzione critica {source_label}. {message}."
+      EMERGENCY: "Emergenza {source_label}. {message}."
+      ERROR: "{source_label} non risponde."
+    en:
+      LOW: "Warning {source_label}. Current value {value}."
+      CRITICAL: "Critical alert {source_label}. {message}."
+      EMERGENCY: "Emergency {source_label}. {message}."
+      ERROR: "{source_label} not responding."
+
+  beep_patterns:
+    LOW:       {repeat_s: 30}
+    CRITICAL:  {repeat_s: 10}
+    EMERGENCY: {repeat_s: 0}
+    ERROR:     {repeat_s: 60}
