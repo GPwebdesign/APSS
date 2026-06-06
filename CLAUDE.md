@@ -72,6 +72,11 @@ ros2 launch ~/ros2_py_ws/apss_lidar.launch.py
 - Corrente positiva = DISCHARGING, negativa = CHARGING
 - `battery_node.py`: pubblica `/battery` (BatteryState) + `/battery/stats` (BatteryStats custom) ogni 2s
 - Potenza calcolata come V×I (registro power INA219 non calibrato)
+- Soglie SoC (calibrate empiricamente su ciclo scarica completo 28/05–04/06/2026, 273 campioni):
+  - LOW: 11.45V (~30% SoC)
+  - CRITICAL: 11.20V (~15% SoC)
+  - EMERGENCY: 10.20V (~5% SoC)
+- Offset INA219 hawk vs terminali batteria reali: +1.5V medio (misurato empiricamente). NON confondere con offset +0.34V della docking station — sensori e posizioni diverse.
 
 ### TOF400C VL53L1X — obstacle avoidance
 - TCA9548A multiplexer: indirizzo 0x70
@@ -86,6 +91,12 @@ Per sbloccare solo se necessario:
 ```bash
 dpkg -l | grep "^ii  ros-humble-" | awk '{print $2}' | xargs sudo apt-mark unhold
 ```
+
+### Nodi ROS2 — stato operativo
+- `safety_node.py`: **operativo** — regole dichiarative YAML, pubblica `/apss/alarm` (JSON) a 0.5Hz, grace period 30s
+  - Soglie batteria attive: LOW 11.45V, CRITICAL 11.20V, EMERGENCY 10.20V
+- `alarm_node.py`: **pianificato** — dispatcher reazioni (piper-tts voce italiana/inglese, `/apss/oled_alert`, storico 20 entry)
+- `oled_node.py`: **operativo** — subscriber `/apss/oled_alert`; scrolling messaggi allarme sulla prima riga
 
 ### Servizi systemd su hawk
 - `apss-oled.service` — service indipendente, `After=network-online.target`, utente `hawk`
