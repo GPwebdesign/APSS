@@ -28,6 +28,7 @@ install(PROGRAMS
   scripts/navigation_controller_node.py
   scripts/camera_publisher.py
   scripts/safety_node.py
+  scripts/alarm_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
