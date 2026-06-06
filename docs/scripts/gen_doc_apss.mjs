@@ -167,8 +167,8 @@ children.push(
     width: { size: CONTENT_W, type: WidthType.DXA },
     columnWidths: [3000, 6638],
     rows: [
-      ['Revisione', 'v2.5'],
-      ['Data', 'Maggio 2026'],
+      ['Revisione', 'v2.6'],
+      ['Data', 'Giugno 2026'],
       ['Concept & System Designer', 'GPwebdesign — Gennaro Puzio'],
       ['AI Assistant', 'Anthropic Claude'],
       ['Stato', 'In sviluppo attivo'],
@@ -198,6 +198,7 @@ children.push(genericTable(
     ['v2.3', 'Maggio 2026', 'Riformattazione documento. Stack ROS2, nodi batteria, TOF, oled. Sviluppo futuro ripristinato'],
     ['v2.4', 'Maggio 2026', 'Circuito ricarica definitivo LiFePO4 (XL4016 1.5A, T3.15A, XHM603 soglie confermate). Firmware ESP32 v2.1. battery_node v2.0 coulomb counting. Dati ciclo ricarica verificati. USB device naming udev'],
     ['v2.5', 'Maggio 2026', 'Correzione INA219 robot: distinzione PSU esterna vs batteria reale. Aggiornamento roadmap firmware v2.2 microswitch.'],
+    ['v2.6', 'Giugno 2026', 'safety_node v1.0 operativo (regole YAML, /apss/alarm, grace period 30s). alarm_node pianificato (piper-tts, /apss/oled_alert). Soglie LiFePO4 calibrate empiricamente (273 campioni 28/05-04/06/2026): LOW=11.45V, CRITICAL=11.20V, EMERGENCY=10.20V. Offset INA219 hawk +1.5V vs terminali reali.'],
   ],
   [1200, 1600, 6838]
 ));
@@ -393,11 +394,13 @@ children.push(genericTable(
     ['Posizione nella catena', 'Dopo DD32AJ4B — con PSU esterna misura ~12.10V stabili; con batteria LiFePO4 reale segue la tensione reale (<12.0V anche a batteria carica). BatteryState.voltage utile per soglie e ancoraggio SoC'],
     ['Convenzione corrente', 'Positiva = DISCHARGING (robot assorbe), Negativa = CHARGING (docking)'],
     ['Potenza', 'Calcolata come V × I (registro power non calibrato)'],
-    ['Assorbimento idle misurato', '~0.45–0.60 A / ~5.5–7.7 W (a seconda dei carichi attivi)'],
+    ['Assorbimento idle misurato', '~0.45–0.65 A / ~5.3–7.7 W (campionamento continuo 28/05–04/06/2026, 273 campioni)'],
     ['Picco in movimento (campionato a 0.5Hz)', '~2.14 A / ~25.7 W — picchi reali stimati 3-4A sub-secondo'],
   ],
   [4000, 5638]
 ));
+children.push(emptyPara());
+children.push(noteBox('Offset INA219 hawk vs terminali batteria reali: +1.5V medio (misurato empiricamente su 273 campioni, ciclo scarica completo 28/05–04/06/2026). NON confondere con l\'offset +0.34V dell\'INA219 docking station — sono sensori in posizioni diverse della catena di potenza.'));
 
 // ─── SEZ 5 — HARDWARE DOCKING ─────────────────────────────────────────────────
 children.push(pageBreak());
@@ -574,11 +577,12 @@ children.push(genericTable(
     ['rplidar_node', 'Pubblica /scan (LaserScan) ~7.7Hz', 'Operativo'],
     ['robot_state_publisher', 'Pubblica TF da URDF', 'Operativo'],
     ['slam_toolbox', 'Mapping SLAM — /map topic', 'Operativo'],
-    ['oled_node.py', 'Display SSD1306 — subscriber /battery (BatteryState) + fallback INA219 diretto con watchdog 5s', 'Operativo'],
+    ['oled_node.py', 'Display SSD1306 — subscriber /battery (BatteryState) + fallback INA219 diretto con watchdog 5s. Subscriber /apss/oled_alert — scrolling messaggi allarme sulla prima riga', 'Operativo'],
     ['battery_node.py v2.0', 'Monitor INA219 — pubblica /battery (BatteryState LiFePO4 coulomb counting) + /battery/stats ogni 2s', 'Operativo'],
+    ['safety_node.py v1.0', 'Orchestratore allarmi — regole dichiarative YAML (safety_rules.yaml). Pubblica /apss/alarm (std_msgs/String JSON) a 0.5Hz. Grace period 30s al boot. 4 regole attive: battery_voltage LOW/CRITICAL/EMERGENCY + tof_front/left/right_frozen', 'Operativo — Giugno 2026'],
+    ['alarm_node.py', 'Dispatcher reazioni: piper-tts voce it/en configurabile da safety_rules.yaml, publisher /apss/oled_alert, storico 20 entry in logs/alarm_history.json', 'Pianificato — Giugno 2026'],
     ['tof_node.py', 'Legge TCA9548A CH2/CH3/CH4 — pubblica /tof/front|left|right (sensor_msgs/Range)', 'Pianificato'],
     ['avoidance_node.py', 'Subscribe /tof/* — pubblica /cmd_vel — soglie 50/40cm', 'Pianificato'],
-    ['alarm_node.py', 'Subscribe /battery — allarme acustico + display OLED a soglie LOW/CRITICAL', 'Pianificato'],
   ],
   [2800, 4200, 2638]
 ));
@@ -593,7 +597,8 @@ children.push(genericTable(
     ['/battery/stats', 'apss_ros2_pkg/BatteryStats', 'battery_node'],
     ['/tof/front /tof/left /tof/right', 'sensor_msgs/Range', 'tof_node (pianificato)'],
     ['/cmd_vel', 'geometry_msgs/Twist', 'avoidance_node / nav2 (pianificato)'],
-    ['/apss/alarm', 'std_msgs/String', 'alarm_node (pianificato)'],
+    ['/apss/alarm', 'std_msgs/String (JSON)', 'safety_node → alarm_node, rosmaster_main.py'],
+    ['/apss/oled_alert', 'std_msgs/String (JSON)', 'alarm_node → oled_node'],
   ],
   [3000, 3000, 3638]
 ));
@@ -732,13 +737,14 @@ children.push(genericTable(
     ['13', 'Build app Kivy per Android (Buildozer) — APK debug 2.1', '✅ Testato Samsung S23 Ultra'],
     ['14', 'Batteria LiFePO4 ECO-WORTHY + ricalibrazione circuito + ciclo verificato', '✅ Completa — v2.4'],
     ['15', 'USB device naming udev + patch Rosmaster_Lib', '✅ Completo — v2.4'],
-    ['16', 'tof_node.py + avoidance_node.py + /cmd_vel subscriber', '⏳ Pianificato — prossimo step'],
-    ['17', 'alarm_node.py — allarme batteria acustico + OLED', '⏳ Pianificato'],
-    ['18', 'Mappatura SLAM appartamento', '⏳ Pianificata'],
-    ['19', 'Nav2 navigazione autonoma', '⏳ Pianificata'],
-    ['20', 'Pattugliamento autonomo con waypoint', '⏳ Pianificata — Fase 5'],
-    ['21', 'Docking autonomo ArUco', '⏳ Pianificata — Fase 7'],
-    ['22', 'Sensori ambientali (DHT-11, audio, gas)', '⏳ Pianificata — Fase 8'],
+    ['16', 'safety_node.py v1.0 — regole YAML, /apss/alarm, grace period 30s', '✅ Completo — Giugno 2026'],
+    ['17', 'tof_node.py + avoidance_node.py + /cmd_vel subscriber', '⏳ Pianificato — prossimo step'],
+    ['18', 'alarm_node.py — piper-tts voce it/en + /apss/oled_alert + storico FIFO', '⏳ Pianificato — Giugno 2026'],
+    ['19', 'Mappatura SLAM appartamento', '⏳ Pianificata'],
+    ['20', 'Nav2 navigazione autonoma', '⏳ Pianificata'],
+    ['21', 'Pattugliamento autonomo con waypoint', '⏳ Pianificata — Fase 5'],
+    ['22', 'Docking autonomo ArUco', '⏳ Pianificata — Fase 7'],
+    ['23', 'Sensori ambientali (DHT-11, audio, gas)', '⏳ Pianificata — Fase 8'],
   ],
   [600, 5500, 3538]
 ));
@@ -772,7 +778,7 @@ children.push(para([txt('Con questa architettura il sistema APSS diventerebbe co
 // ─── FOOTER ───────────────────────────────────────────────────────────────────
 children.push(emptyPara());
 children.push(new Paragraph({
-  children: [txt('Documento v2.5 — Maggio 2026 — GPwebdesign — Gennaro Puzio — Uso interno', { size: 16, color: C.DGRAY, italics: true })],
+  children: [txt('Documento v2.6 — Giugno 2026 — GPwebdesign — Gennaro Puzio — Uso interno', { size: 16, color: C.DGRAY, italics: true })],
   alignment: AlignmentType.CENTER,
   spacing: { before: 240, after: 80 },
   border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.LBLUE, space: 4 } },
@@ -827,7 +833,7 @@ const doc = new Document({
       default: new Header({
         children: [new Paragraph({
           children: [
-            txt('APSS — Documentazione Tecnica v2.5', { size: 16, color: C.DGRAY, italics: true }),
+            txt('APSS — Documentazione Tecnica v2.6', { size: 16, color: C.DGRAY, italics: true }),
             new TextRun({ text: '\t', font: FONT }),
             txt('GPwebdesign — Uso interno', { size: 16, color: C.DGRAY, italics: true }),
           ],
@@ -842,7 +848,7 @@ const doc = new Document({
         children: [new Paragraph({
           children: [
             txt('Confidenziale — Uso interno GPwebdesign', { size: 16, color: C.DGRAY }),
-            new TextRun({ text: '\t\tv2.5 — Maggio 2026', font: FONT, size: 16, color: C.DGRAY, italics: true }),
+            new TextRun({ text: '\t\tv2.6 — Giugno 2026', font: FONT, size: 16, color: C.DGRAY, italics: true }),
           ],
           tabStops: [{ type: 'right', position: CONTENT_W }],
           border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.LBLUE, space: 4 } },
@@ -855,7 +861,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then(buffer => {
-  const outPath = new URL('../APSS_Documentazione_Tecnica_v2_5.docx', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const outPath = new URL('../APSS_Documentazione_Tecnica_v2_6.docx', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
   fs.writeFileSync(outPath, buffer);
   console.log('Done:', outPath);
 });
