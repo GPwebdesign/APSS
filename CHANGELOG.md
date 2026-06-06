@@ -2,6 +2,19 @@
 
 ---
 
+## [v2.2.0] — 2026-06-06
+
+### Added
+- `test_files/discharge_logger.py`: logger INA219 standalone per caratterizzazione scarica LiFePO4. CSV append con campionamento adattivo (>11.5V=300s, 11.2–11.5V=60s, <11.2V=10s), marker RESTART/STOP, prompt misura morsetti all'avvio.
+- `test_files/morsetti_logger.py`: one-shot logger misure manuali al tester in note_morsetti.csv. Correlabile per timestamp con discharge_*.csv per calcolo offset V_ina vs V_reale.
+- `test_files/discharge_20260528_2137.csv`: dati ciclo scarica completo 28/05–04/06/2026 (273 campioni). Curva LiFePO4 documentata: plateau ~11.84V → ginocchio ~10.0V V_ina.
+- `test_files/note_morsetti.csv`: misure manuali ai morsetti batteria correlate al ciclo di scarica. Offset INA219 hawk vs terminali reali: +1.5V medio.
+
+### Changed
+- Nessuna modifica al codice principale in questa sessione.
+
+---
+
 ## [v2.1.0] — 2026-05-24
 
 ### Batteria — sostituzione YTZ10S → ECO-WORTHY LiFePO4
@@ -36,17 +49,21 @@
 - `design_capacity`: 8.6 → **8.0** Ah
 - `serial_number`: 'YTZ10S' → **'ECO-LFPYZ1208'**
 - `power_supply_technology`: UNKNOWN → **LIPO** (enum ROS2 più vicino a LiFePO4)
-- **Metodo SoC:** introdotto **coulomb counting** come metodo primario — INA219 hawk misura tensione regolata DD32AJ4B (~12.10V stabili), non la tensione reale della batteria
+- **Metodo SoC:** rimosso calcolo da tensione (INA219 hawk misura tensione regolata DD32AJ4B ~12.10V stabili, non la tensione reale della batteria) — introdotto **coulomb counting** come metodo primario
   - `SOC_INITIAL = 0.85` — SoC assunto al boot
   - `BATTERY_CAPACITY_AH = 8.0` → `BATTERY_CAPACITY_C = 28800.0` C
   - Reset SoC a 100% quando corrente scende sotto 0.05A durante ricarica (fine fase CV)
-- `VOLTAGE_TABLE_LIFEPO4` mantenuta come riferimento futuro — non usata attivamente per stima SoC
+- **Tabella SoC LiFePO4** (`VOLTAGE_TABLE_LIFEPO4`) mantenuta come riferimento futuro — non usata attivamente per stima SoC
 - Log aggiornato con tag `[coulomb]` per identificare il metodo di stima attivo
 
 ### Documentazione
 
-- `docs/architecture.md` aggiornato: nota architetturale INA219 robot (posizione dopo DD32AJ4B, tensione regolata), tabella dettagliata battery_node.py v2.0, sezione docking completamente riscritta con dati reali misurati (XL4016/XHM603 definitivi, offset catena, dati ciclo completo, INA219 HW-831B, firmware v2.1 fix table e roadmap v2.2)
-- `docs/doc_firmware.md` aggiunto — documentazione completa firmware ESP32 docking v2.1: architettura, sequenza avvio, tutti i file, stato globale, catena potenza con offset misurati, fix applicati, note operative, roadmap v2.2
+- `docs/architecture.md` aggiornato:
+  - Sezione INA219 robot: aggiunta nota architetturale critica su posizione dopo DD32AJ4B e inutilizzabilità stima SoC da tensione
+  - Sezione Stack ROS2: aggiunta tabella dettagliata battery_node.py v2.0
+  - Sezione Hardware docking station: completamente riscritta con dati reali misurati (parametri XL4016/XHM603 definitivi, tabella offset catena, dati ciclo completo, INA219 docking HW-831B, firmware v2.1 fix table e roadmap v2.2)
+  - Stack tecnologico: firmware docking aggiornato a v2.1
+- `docs/doc_firmware.md` aggiunto — documentazione completa firmware ESP32 docking v2.1: architettura, sequenza avvio, tutti i file, stato globale, catena potenza con offset misurati, fix applicati, note operative, roadmap
 
 ---
 
