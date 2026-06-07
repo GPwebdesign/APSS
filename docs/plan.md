@@ -135,6 +135,26 @@
 - [x] safety_rules.yaml in ros2_py_ws/src/apss_ros2_pkg/config/
 - [x] CMakeLists.txt aggiornato con install(DIRECTORY config)
 
+### alarm_node (Giugno 2026)
+- [x] Verificare prerequisiti piper-tts su hawk
+- [x] Aggiungere sezione alarm_node in safety_rules.yaml
+- [x] alarm_node.py implementato e testato
+- [x] oled_node.py modificato: subscriber /apss/oled_alert, scrolling riga 0,
+      reset solo su cambio testo, 8px/tick, prefisso APSS
+- [x] alarm_node.py aggiunto al CMakeLists.txt
+- [x] Colcon build + test integrato verificato:
+      battery_node → safety_node → alarm_node → voce + OLED
+- [ ] Subscriber /apss/alarm in rosmaster_main.py per Kivy poll
+
+### Audio e voce (Giugno 2026)
+- [x] piper-tts installato su hawk via pip --user
+- [x] Voci scaricate: it_IT-paola-medium.onnx, en_US-amy-medium.onnx in ~/piper-voices/
+- [x] Utente hawk aggiunto al gruppo audio
+- [x] Device ALSA: plughw:Headphones — volume persistente via alsactl store
+- [x] Lingua configurabile in safety_rules.yaml (it/en)
+- [x] Source labels human-readable IT/EN in safety_rules.yaml
+- [x] Template vocali dinamici con {source_label}/{value}/{message}
+
 ---
 
 ## 🔄 IN CORSO / PROSSIMI
@@ -153,18 +173,6 @@
 - [ ] Architettura estensibile: predisporre per futuri allarmi TOF, encoder fault, ecc.
 - [ ] Publisher `/apss/alarm` (std_msgs/String) — consumato da nodi interessati
 - [ ] alarm_node.py — dispatcher allarmi (beeper Yahboom + OLED) — dopo safety_node
-
-### alarm_node (Giugno 2026)
-- [ ] Verificare prerequisiti piper-tts su hawk
-      (which piper, ls ~/piper-voices/)
-- [ ] Aggiungere sezione alarm_node in safety_rules.yaml
-- [ ] alarm_node.py: subscriber /apss/alarm, piper-tts voce it/en configurabile,
-      publisher /apss/oled_alert, storico 20 entry in logs/alarm_history.json
-- [ ] Modificare oled_node.py: subscriber /apss/oled_alert, scrolling prima riga
-- [ ] Aggiungere alarm_node.py al CMakeLists.txt
-- [ ] Colcon build + test integrato:
-      battery_node → safety_node → alarm_node → voce + OLED
-- [ ] Subscriber /apss/alarm in rosmaster_main.py per Kivy poll
 
 ### Fase 1 — TOF400C VL53L1X (obstacle avoidance software)
 - [x] Fix TOF destro CH4 — sensore sostituito, tutti e 3 verificati OK (0x29)
@@ -245,8 +253,6 @@
 | Bug Video MainScreen al primo `on_enter` | ~~Chiuso~~ | Risolto con TCP bind su 0.0.0.0 — video funzionante al primo avvio |
 | Log rumore `Camera Init Error!` per `/dev/camera_usb` | Bassa | Handler legacy Yahboom, non funzionale — pre-esistente |
 | Ripristino aggiornamenti ROS2 Humble su hawk | Bassa | Dopo hold config completa su entrambi i sistemi |
-| Verifica piper-tts su hawk | Alta | which piper, ls ~/piper-voices/ |
-| Modifica oled_node.py scrolling | Alta | Prerequisito alarm_node |
 | Subscriber /apss/alarm in rosmaster_main.py | Media | Per Kivy poll TCP |
 
 ---
