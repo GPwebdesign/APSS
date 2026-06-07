@@ -3,6 +3,29 @@
 
 ---
 
+## Sessione 07 Giugno 2026
+- alarm_node.py implementato e testato su hawk ✅
+  - piper-tts v1.4.2 installato via pip --user
+  - Voci: it_IT-paola-medium.onnx + en_US-amy-medium.onnx
+    in ~/piper-voices/
+  - Utente hawk aggiunto al gruppo audio
+  - Device ALSA: plughw:Headphones, volume persistente alsactl store
+  - Source labels human-readable IT/EN in safety_rules.yaml
+  - Template vocali dinamici {source_label}/{value}/{message}
+  - Tutti gli allarmi dello stesso livello parlati in sequenza
+  - Storico FIFO 20 entry in logs/alarm_history.json
+- oled_node.py aggiornato ✅
+  - Subscriber /apss/oled_alert aggiunto
+  - Scrolling riga 0 da destra verso sinistra, 8px/tick a 2Hz
+  - Prefisso "APSS | " anteposto ai messaggi
+  - Reset posizione solo su cambio testo (fix interferenza alarm_node)
+- Test integrato verificato: battery_node → safety_node →
+  alarm_node → voce italiana + scrolling OLED
+- Documentazione allineata: apss_ros2.md, plan.md, architecture.md
+- Repo allineati: ros2_py_ws, APSS master
+
+---
+
 ## Sessione 06 Giugno 2026
 - Documentazione allineata: apss_ros2.md, CLAUDE.md, plan.md, architecture.md aggiornati con safety_node operativo, alarm_node pianificato, soglie empiriche LiFePO4, offset INA219 hawk +1.5V
 - Pianificazione alarm_node completata: architettura dispatcher, piper-tts voce italiana/inglese configurabile da safety_rules.yaml, template dinamici {source}/{value}/{message}, /apss/oled_alert con scrolling prima riga OLED, storico FIFO 20 entry in logs/alarm_history.json
