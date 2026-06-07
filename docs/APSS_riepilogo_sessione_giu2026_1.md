@@ -90,3 +90,62 @@ via Claude Code (mai in chat).
 | battery_node nel launch file | Media | Aggiungere ad apss_lidar.launch.py |
 | Firmware ESP32 v2.2 | Media | relay_chiudi/apri loggano V/A/W; microswitch montaggio fisico |
 | Bug [ODOM] publisher context invalid | Bassa | Cosmetico, non bloccante |
+
+---
+
+## Completati in sessione 07/06/2026 — chat #2
+
+- ✅ **Server APSS TCP porta 6010 in rosmaster_main.py**:
+  - Thread daemon task_apss_server su porta 6010 (canale JSON APSS generico, estensibile)
+  - Subscriber ROS2 /apss/alarm con push immediato al client connesso
+  - Cache ultimo stato (g_apss_alarm_cache), fallback ros2_unavailable se ROS2 non attivo
+  - GET_HISTORY: il client può richiedere lo storico corrente
+  - rclpy.spin_once(node, timeout_sec=0) aggiunto nel loop thread_odom per processare callback
+  - Porta cambiata da 6001 a 6010 (conflitto NoMachine nxnode.bin)
+  - Fix NumPy: downgrade numpy<2 (piper-tts aveva aggiornato a 2.2.6, incompatibile con OpenCV)
+- ✅ **AlarmClient — rosmaster_kivy/network/alarm_client.py**:
+  - Stesso pattern threading di TCPClient (connect/recv worker, lock)
+  - Protocollo JSON newline-delimited, porta 6010
+  - Callback on_alarm, on_history, on_connected, on_disconnected
+  - request_history() per GET_HISTORY, update_host() propagato da save_settings()
+- ✅ **AlertScreen funzionale — rosmaster_kivy/screens/alert_screen.py**:
+  - UI completamente in Python (rimossa regola <AlertScreen> dal .kv — conflitto doppia UI)
+  - MDTopAppBar "Alert Sicurezza" + pulsante back, lista scrollabile storico allarmi
+  - Pulsante "Aggiorna" → request_history()
+  - update_alarms(data): popola lista con ts, charging, allarmi per livello/source/message
+- ✅ **Popup allarmi in main.py**:
+  - Popup MDDialog "⚠ Allarme APSS" su qualsiasi schermata
+  - Dedup via firma frozenset(source, level): popup si apre solo se lista allarmi cambia
+  - Popup si chiude automaticamente se lista allarmi si svuota
+  - Reset firma solo su svuotamento lista, NON al dismiss manuale (OK)
+- ✅ **start_robot_APSS.sh**: script avvio robot — rosmaster_main.py +
+  battery_node e safety_node in terminali terminator separati
+- ✅ **Icona app desktop**: Window.set_icon('icon.png') in build()
+
+## Architettura canale APSS TCP porta 6010 (aggiornata)
+
+- Canale JSON bidirezionale generico — estensibile per future comunicazioni app↔robot
+- Server: thread daemon in rosmaster_main.py, una connessione alla volta
+- Push immediato al cambio /apss/alarm, fallback ros2_unavailable
+- Client: AlarmClient con pattern connect/recv worker identico a TCPClient
+- Protocollo: JSON newline-delimited, tipo "alarm"/"history"/"status"
+
+## Prossimi step aggiornati
+
+1. tof_node.py + avoidance_node.py + /cmd_vel subscriber
+2. Reinstallare ros-humble-slam-toolbox su hawk (pre-SLAM obbligatorio)
+3. Prima sessione SLAM mapping
+
+## Pending items aggiornati
+
+| Item | Priorità | Note |
+|------|----------|------|
+| tof_node.py | Alta | Prerequisito avoidance_node |
+| avoidance_node.py | Alta | Dopo tof_node |
+| ros-humble-slam-toolbox | Alta | Da reinstallare su hawk prima della sessione SLAM |
+| RPLIDAR A1M8 sostituto | Alta | Reso autorizzato, sostituto in arrivo |
+| APK Android v2.2 | Media | Rebuild con AlertScreen e AlarmClient dopo test completo su Linux |
+| status_node | Media | Pianificato dopo safety/alarm — stato sensori on demand per Kivy |
+| battery_node nel launch file | Media | Aggiungere ad apss_lidar.launch.py |
+| Firmware ESP32 v2.2 | Media | relay_chiudi/apri loggano V/A/W; microswitch montaggio fisico; ricarica completata → relay OFF; valutare relay CH2 per isolare INA da barra rame a fine ricarica |
+| Bug [ODOM] publisher context invalid | Bassa | Cosmetico, non bloccante |
