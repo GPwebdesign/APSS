@@ -249,7 +249,6 @@
 | `battery_node` nel launch file | Media | Aggiungere ad `apss_lidar.launch.py` per avvio integrato |
 | Backup su USB disk via SMB | Media | \\iliadbox_Server\iliadbox — utente Rino — cifs-utils da installare su hawk |
 | Microswitch docking station | Media | NC, GPIO18, stesso cablaggio reed switch |
-| Bug intermittente `[ODOM] publisher's context is invalid` | Bassa | Cosmetico, sparisce su run lunghi — pre-esistente al fix USB |
 | Bug Video MainScreen al primo `on_enter` | ~~Chiuso~~ | Risolto con TCP bind su 0.0.0.0 — video funzionante al primo avvio |
 | Log rumore `Camera Init Error!` per `/dev/camera_usb` | Bassa | Handler legacy Yahboom, non funzionale — pre-esistente |
 | Ripristino aggiornamenti ROS2 Humble su hawk | Bassa | Dopo hold config completa su entrambi i sistemi |

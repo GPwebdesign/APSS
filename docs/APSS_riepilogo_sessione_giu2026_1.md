@@ -89,7 +89,6 @@ via Claude Code (mai in chat).
 | status_node | Media | Pianificato dopo safety/alarm — stato sensori on demand per Kivy |
 | battery_node nel launch file | Media | Aggiungere ad apss_lidar.launch.py |
 | Firmware ESP32 v2.2 | Media | relay_chiudi/apri loggano V/A/W; microswitch montaggio fisico |
-| Bug [ODOM] publisher context invalid | Bassa | Cosmetico, non bloccante |
 
 ---
 
@@ -148,4 +147,3 @@ via Claude Code (mai in chat).
 | status_node | Media | Pianificato dopo safety/alarm — stato sensori on demand per Kivy |
 | battery_node nel launch file | Media | Aggiungere ad apss_lidar.launch.py |
 | Firmware ESP32 v2.2 | Media | relay_chiudi/apri loggano V/A/W; microswitch montaggio fisico; ricarica completata → relay OFF; valutare relay CH2 per isolare INA da barra rame a fine ricarica |
-| Bug [ODOM] publisher context invalid | Bassa | Cosmetico, non bloccante |
