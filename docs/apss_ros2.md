@@ -36,10 +36,10 @@ Ogni service systemd deve fare source esplicito.
 
 | Nodo | Comando esatto | File sorgente | Stato |
 |------|---------------|---------------|-------|
-| `oled_node` | `ros2 run apss_ros2_pkg oled_node.py` | `scripts/oled_node.py` | ✅ funzionante — subscriber `/apss/oled_alert` (scrolling messaggi allarme sulla prima riga) |
+| `oled_node` | `ros2 run apss_ros2_pkg oled_node.py` | `scripts/oled_node.py` | ✅ funzionante — subscriber `/apss/oled_alert` (scrolling messaggi allarme sulla prima riga); scrolling `/apss/oled_alert` sulla riga 0 — reset solo su cambio testo, velocità 8px/tick, prefisso APSS |
 | `battery_node` | `ros2 run apss_ros2_pkg battery_node.py` | `scripts/battery_node.py` | ✅ funzionante |
 | `safety_node` | `ros2 run apss_ros2_pkg safety_node.py` | `scripts/safety_node.py` | ✅ funzionante |
-| `alarm_node` | `ros2 run apss_ros2_pkg alarm_node.py` | `scripts/alarm_node.py` | 🔲 pianificato |
+| `alarm_node` | `ros2 run apss_ros2_pkg alarm_node.py` | `scripts/alarm_node.py` | ✅ funzionante |
 | `obstacle_detector_node` | `ros2 run apss_ros2_pkg obstacle_detector_node.py` | `scripts/obstacle_detector_node.py` | 🔲 da sviluppare |
 | `navigation_controller_node` | `ros2 run apss_ros2_pkg navigation_controller_node.py` | `scripts/navigation_controller_node.py` | 🔲 da sviluppare |
 | `camera_publisher` | `ros2 run apss_ros2_pkg camera_publisher.py` | `scripts/camera_publisher.py` | 🔲 da sviluppare |
@@ -65,6 +65,8 @@ Ogni service systemd deve fare source esplicito.
 | `/cmd_vel` | `geometry_msgs/Twist` | `avoidance_node` (pianificato) | `rosmaster_main.py` |
 | `/tof/front` `/tof/left` `/tof/right` | `sensor_msgs/Range` | `tof_node` (pianificato) | `avoidance_node` |
 
+`/apss/oled_alert`: JSON `{messages, scroll}` — scrolling riga 0 OLED. Reset posizione solo se testo cambia.
+
 ## File di configurazione
 
 | File | Path nel package | Caricato da |
@@ -73,7 +75,7 @@ Ogni service systemd deve fare source esplicito.
 
 Il file contiene due sezioni principali:
 - `global` + `rules`: regole di rilevamento allarmi per safety_node
-- `alarm_node`: configurazione reazioni (lingua, template vocali, pattern, log)
+- `alarm_node`: configurazione reazioni — language (it/en), voice_enabled, alsa_device, voice_models IT/EN, source_labels IT/EN, templates per livello, beep_patterns, log_path, log_max_entries
 
 Installato via CMakeLists.txt con `install(DIRECTORY config ...)`.
 Caricato a runtime via `get_package_share_directory('apss_ros2_pkg')`.
