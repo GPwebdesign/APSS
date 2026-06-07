@@ -11,6 +11,7 @@ Subscribers:
   /apss/mode        (std_msgs/String)
   /apss/sensors/env (std_msgs/String — JSON)
   /battery          (sensor_msgs/BatteryState)
+  /apss/oled_alert  (std_msgs/String — JSON {"messages": [...]})
 """
 import rclpy
 from rclpy.node import Node
@@ -65,6 +66,10 @@ class OledNode(Node):
         self._temp             = "--"
         self._hum              = "--"
         self._gas              = "--"
+        self._alert_messages   = []
+        self._alert_scroll_x   = 128
+        self._alert_scroll_text = ""
+        self._alert_text_width  = 0
         self._lock             = threading.Lock()
 
         # Inizializza display
@@ -110,6 +115,8 @@ class OledNode(Node):
                                  self._battery_state_cb, 10)
         self.create_subscription(String, '/apss/sensors/env',
                                  self._env_cb, 10)
+        self.create_subscription(String, '/apss/oled_alert',
+                                 self._oled_alert_cb, 10)
 
         # Timer aggiornamento display 2Hz
         self.create_timer(0.5, self._update_display)
@@ -161,16 +168,35 @@ class OledNode(Node):
         except Exception:
             pass
 
+    def _oled_alert_cb(self, msg: String):
+        try:
+            self.get_logger().info(f'[OLED] alert ricevuto: {msg.data[:50]}')
+            data = json.loads(msg.data)
+            messages = data.get('messages', [])
+            new_text = "APSS  |  " + "  |  ".join(messages) if messages else ""
+            with self._lock:
+                if new_text != self._alert_scroll_text:
+                    self._alert_scroll_x   = 128
+                    self._alert_text_width = 0
+                self._alert_scroll_text = new_text
+                self._alert_messages    = messages
+        except Exception as e:
+            self.get_logger().warning(f'[OLED] oled_alert parse error: {e}')
+
     # ── Aggiornamento display ─────────────────────────────────────────────
     def _update_display(self):
         if not self._oled_ok:
             return
         with self._lock:
-            ip      = self._ip
-            last_ts = self._last_battery_msg_ts
-            volts   = self._batt_volts
-            amps    = self._batt_amps
-            watts   = self._batt_watts
+            ip                = self._ip
+            last_ts           = self._last_battery_msg_ts
+            volts             = self._batt_volts
+            amps              = self._batt_amps
+            watts             = self._batt_watts
+            alert_messages    = list(self._alert_messages)
+            alert_scroll_x    = self._alert_scroll_x
+            alert_scroll_text = self._alert_scroll_text
+            alert_text_width  = self._alert_text_width
 
         # Watchdog 5s su /battery: se stale usa lettura diretta INA219
         now = time.monotonic()
@@ -203,10 +229,24 @@ class OledNode(Node):
 
         try:
             with canvas(self._device) as draw:
-                # Riga 0 — "APSS" centrato (font_large 14) a y=0
-                text_width = draw.textlength("APSS", font=self._font_large)
-                x = (128 - text_width) // 2
-                draw.text((x, 0), "APSS", font=self._font_large, fill="white")
+                # Riga 0 — scrolling alert o "APSS" centrato (font_large 14) a y=0
+                if alert_messages:
+                    if alert_text_width == 0:
+                        alert_text_width = int(draw.textlength(
+                            alert_scroll_text, font=self._font_large))
+                        with self._lock:
+                            self._alert_text_width = alert_text_width
+                    draw.text((alert_scroll_x, 0),
+                              alert_scroll_text,
+                              font=self._font_large, fill="white")
+                    if alert_scroll_x < -alert_text_width:
+                        alert_scroll_x = 128
+                    else:
+                        alert_scroll_x -= 8
+                else:
+                    text_width = draw.textlength("APSS", font=self._font_large)
+                    x = (128 - text_width) // 2
+                    draw.text((x, 0), "APSS", font=self._font_large, fill="white")
                 # Separatore
                 draw.line([(0, 17), (128, 17)], fill="white", width=1)
                 # Riga 1 — IP centrato (font_small 11) a y=20
@@ -219,6 +259,9 @@ class OledNode(Node):
                 draw.text((0, 53), curr_str, font=self._font_small, fill="white")
         except Exception as e:
             self.get_logger().warn(f'Errore display: {e}')
+
+        with self._lock:
+            self._alert_scroll_x = alert_scroll_x
 
     def destroy_node(self):
         if self._oled_ok:
