@@ -167,7 +167,7 @@ children.push(
     width: { size: CONTENT_W, type: WidthType.DXA },
     columnWidths: [3000, 6638],
     rows: [
-      ['Revisione', 'v2.6'],
+      ['Revisione', 'v2.7'],
       ['Data', 'Giugno 2026'],
       ['Concept & System Designer', 'GPwebdesign — Gennaro Puzio'],
       ['AI Assistant', 'Anthropic Claude'],
@@ -199,6 +199,7 @@ children.push(genericTable(
     ['v2.4', 'Maggio 2026', 'Circuito ricarica definitivo LiFePO4 (XL4016 1.5A, T3.15A, XHM603 soglie confermate). Firmware ESP32 v2.1. battery_node v2.0 coulomb counting. Dati ciclo ricarica verificati. USB device naming udev'],
     ['v2.5', 'Maggio 2026', 'Correzione INA219 robot: distinzione PSU esterna vs batteria reale. Aggiornamento roadmap firmware v2.2 microswitch.'],
     ['v2.6', 'Giugno 2026', 'safety_node v1.0 operativo (regole YAML, /apss/alarm, grace period 30s). alarm_node pianificato (piper-tts, /apss/oled_alert). Soglie LiFePO4 calibrate empiricamente (273 campioni 28/05-04/06/2026): LOW=11.45V, CRITICAL=11.20V, EMERGENCY=10.20V. Offset INA219 hawk +1.5V vs terminali reali.'],
+    ['v2.7', 'Giugno 2026', 'alarm_node.py v1.0 operativo: voce piper-tts (lingua configurabile it/en), source labels human-readable, template dinamici {source_label}/{value}/{message}, storico FIFO 20 entry. oled_node.py: scrolling /apss/oled_alert su riga 0, prefisso "APSS | ", 8px/tick a 2Hz, reset posizione solo su cambio testo. Configurazione audio hawk: piper-tts v1.4.2, device ALSA plughw:Headphones, gruppo audio, volume persistente via alsactl store.'],
   ],
   [1200, 1600, 6838]
 ));
@@ -577,10 +578,10 @@ children.push(genericTable(
     ['rplidar_node', 'Pubblica /scan (LaserScan) ~7.7Hz', 'Operativo'],
     ['robot_state_publisher', 'Pubblica TF da URDF', 'Operativo'],
     ['slam_toolbox', 'Mapping SLAM — /map topic', 'Operativo'],
-    ['oled_node.py', 'Display SSD1306 — subscriber /battery (BatteryState) + fallback INA219 diretto con watchdog 5s. Subscriber /apss/oled_alert — scrolling messaggi allarme sulla prima riga', 'Operativo'],
+    ['oled_node.py', 'Display SSD1306 — subscriber /battery (BatteryState) + fallback INA219 diretto con watchdog 5s. Subscriber /apss/oled_alert: scrolling riga 0 da destra verso sinistra, prefisso "APSS | ", velocità 8px/tick a 2Hz, reset posizione solo su cambio testo (messaggio vuoto → riga 0 torna a "APSS" statico centrato)', 'Operativo'],
     ['battery_node.py v2.0', 'Monitor INA219 — pubblica /battery (BatteryState LiFePO4 coulomb counting) + /battery/stats ogni 2s', 'Operativo'],
     ['safety_node.py v1.0', 'Orchestratore allarmi — regole dichiarative YAML (safety_rules.yaml). Pubblica /apss/alarm (std_msgs/String JSON) a 0.5Hz. Grace period 30s al boot. 4 regole attive: battery_voltage LOW/CRITICAL/EMERGENCY + tof_front/left/right_frozen', 'Operativo — Giugno 2026'],
-    ['alarm_node.py', 'Dispatcher reazioni: piper-tts voce it/en configurabile da safety_rules.yaml, publisher /apss/oled_alert, storico 20 entry in logs/alarm_history.json', 'Pianificato — Giugno 2026'],
+    ['alarm_node.py v1.0', 'Dispatcher reazioni — voce piper-tts (lingua it/en configurabile da safety_rules.yaml), source labels human-readable per lingua, template dinamici {source_label}/{value}/{message}, publisher /apss/oled_alert, storico FIFO 20 entry in logs/alarm_history.json', 'Operativo — Giugno 2026'],
     ['tof_node.py', 'Legge TCA9548A CH2/CH3/CH4 — pubblica /tof/front|left|right (sensor_msgs/Range)', 'Pianificato'],
     ['avoidance_node.py', 'Subscribe /tof/* — pubblica /cmd_vel — soglie 50/40cm', 'Pianificato'],
   ],
@@ -716,6 +717,24 @@ children.push(genericTable(
 children.push(emptyPara());
 children.push(para([txt('ATTENZIONE: rosmaster_main.py deve essere avviato PRIMA del launch file ROS2.', { bold: true, color: C.ORANGE })]));
 
+children.push(h2('10.4 Configurazione Audio — piper-tts (Giugno 2026)'));
+children.push(para([txt('Voce sintetizzata per gli allarmi dispatchati da alarm_node.py — uscita audio RPi (jack 3.5mm / cuffie) tramite piper-tts, in alternativa a un beeper hardware GPIO.')]));
+children.push(emptyPara());
+children.push(genericTable(
+  ['Parametro', 'Valore'],
+  [
+    ['Engine TTS', 'piper-tts v1.4.2 (installato via pip --user)'],
+    ['Device ALSA', 'plughw:Headphones (bcm2835 Headphones)'],
+    ['Gruppo utente', 'hawk aggiunto al gruppo audio'],
+    ['Volume', '100% PCM + Headphone — persistente via alsactl store'],
+    ['Voce italiana', '~/piper-voices/it_IT-paola-medium.onnx'],
+    ['Voce inglese', '~/piper-voices/en_US-amy-medium.onnx'],
+    ['Lingua default', 'it (configurabile in safety_rules.yaml)'],
+    ['Soppressione warning', 'stderr=subprocess.DEVNULL (GPU onnxruntime)'],
+  ],
+  [4000, 5638]
+));
+
 // ─── SEZ 11 — ROADMAP ─────────────────────────────────────────────────────────
 children.push(pageBreak());
 children.push(h1('11. Stato Attuale e Roadmap di Sviluppo'));
@@ -739,7 +758,7 @@ children.push(genericTable(
     ['15', 'USB device naming udev + patch Rosmaster_Lib', '✅ Completo — v2.4'],
     ['16', 'safety_node.py v1.0 — regole YAML, /apss/alarm, grace period 30s', '✅ Completo — Giugno 2026'],
     ['17', 'tof_node.py + avoidance_node.py + /cmd_vel subscriber', '⏳ Pianificato — prossimo step'],
-    ['18', 'alarm_node.py — piper-tts voce it/en + /apss/oled_alert + storico FIFO', '⏳ Pianificato — Giugno 2026'],
+    ['18', 'alarm_node.py v1.0 — piper-tts voce it/en + /apss/oled_alert + storico FIFO', '✅ Completo — Giugno 2026'],
     ['19', 'Mappatura SLAM appartamento', '⏳ Pianificata'],
     ['20', 'Nav2 navigazione autonoma', '⏳ Pianificata'],
     ['21', 'Pattugliamento autonomo con waypoint', '⏳ Pianificata — Fase 5'],
@@ -778,7 +797,7 @@ children.push(para([txt('Con questa architettura il sistema APSS diventerebbe co
 // ─── FOOTER ───────────────────────────────────────────────────────────────────
 children.push(emptyPara());
 children.push(new Paragraph({
-  children: [txt('Documento v2.6 — Giugno 2026 — GPwebdesign — Gennaro Puzio — Uso interno', { size: 16, color: C.DGRAY, italics: true })],
+  children: [txt('Documento v2.7 — Giugno 2026 — GPwebdesign — Gennaro Puzio — Uso interno', { size: 16, color: C.DGRAY, italics: true })],
   alignment: AlignmentType.CENTER,
   spacing: { before: 240, after: 80 },
   border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.LBLUE, space: 4 } },
@@ -833,7 +852,7 @@ const doc = new Document({
       default: new Header({
         children: [new Paragraph({
           children: [
-            txt('APSS — Documentazione Tecnica v2.6', { size: 16, color: C.DGRAY, italics: true }),
+            txt('APSS — Documentazione Tecnica v2.7', { size: 16, color: C.DGRAY, italics: true }),
             new TextRun({ text: '\t', font: FONT }),
             txt('GPwebdesign — Uso interno', { size: 16, color: C.DGRAY, italics: true }),
           ],
@@ -848,7 +867,7 @@ const doc = new Document({
         children: [new Paragraph({
           children: [
             txt('Confidenziale — Uso interno GPwebdesign', { size: 16, color: C.DGRAY }),
-            new TextRun({ text: '\t\tv2.6 — Giugno 2026', font: FONT, size: 16, color: C.DGRAY, italics: true }),
+            new TextRun({ text: '\t\tv2.7 — Giugno 2026', font: FONT, size: 16, color: C.DGRAY, italics: true }),
           ],
           tabStops: [{ type: 'right', position: CONTENT_W }],
           border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.LBLUE, space: 4 } },
@@ -861,7 +880,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then(buffer => {
-  const outPath = new URL('../APSS_Documentazione_Tecnica_v2_6.docx', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const outPath = new URL('../APSS_Documentazione_Tecnica_v2_7.docx', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
   fs.writeFileSync(outPath, buffer);
   console.log('Done:', outPath);
 });
