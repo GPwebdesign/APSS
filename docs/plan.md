@@ -144,7 +144,18 @@
 - [x] alarm_node.py aggiunto al CMakeLists.txt
 - [x] Colcon build + test integrato verificato:
       battery_node → safety_node → alarm_node → voce + OLED
-- [ ] Subscriber /apss/alarm in rosmaster_main.py per Kivy poll
+- [x] Subscriber /apss/alarm in rosmaster_main.py per Kivy poll
+
+### Canale APSS TCP e AlertScreen Kivy (Giugno 2026)
+- [x] Server APSS TCP porta 6010 in rosmaster_main.py — thread daemon, push immediato /apss/alarm
+- [x] rclpy.spin_once nel loop thread_odom per processare callback ROS2
+- [x] Fix shutdown pulito thread_odom — g_shutdown_event, node.destroy_node(), elimina race condition
+- [x] AlarmClient — rosmaster_kivy/network/alarm_client.py — pattern threading identico a TCPClient
+- [x] AlertScreen funzionale — UI Python, MDTopAppBar, lista scrollabile storico allarmi
+- [x] Popup allarmi con dedup firma frozenset(source, level)
+- [x] start_robot_APSS.sh — avvio rosmaster_main.py + battery_node + safety_node in terminator
+- [x] Icona app desktop — Window.set_icon('icon.png')
+- [x] APK Android v2.2 da buildare (AlarmClient + AlertScreen)
 
 ### Audio e voce (Giugno 2026)
 - [x] piper-tts installato su hawk via pip --user
@@ -165,14 +176,6 @@
 - [ ] `battery_node` + `oled_node` aggiunti ad `apss_lidar.launch.py`
 - [x] Service systemd `apss-oled.service` — installato, enabled, funzionante al boot ✅
 - [ ] Test integrato: battery_node → `/battery` → oled_node → display (asterisco scompare)
-
-### Safety node (Maggio 2026)
-- [ ] Progettazione `safety_node.py` — orchestratore centrale allarmi
-- [ ] Subscriber `/battery` (BatteryState) — trigger SOS a 11.20V (CRITICAL)
-- [ ] Beeper SOS morse (···---···) via scheda Yahboom — 3 ripetizioni a distanza 3s
-- [ ] Architettura estensibile: predisporre per futuri allarmi TOF, encoder fault, ecc.
-- [ ] Publisher `/apss/alarm` (std_msgs/String) — consumato da nodi interessati
-- [ ] alarm_node.py — dispatcher allarmi (beeper Yahboom + OLED) — dopo safety_node
 
 ### Fase 1 — TOF400C VL53L1X (obstacle avoidance software)
 - [x] Fix TOF destro CH4 — sensore sostituito, tutti e 3 verificati OK (0x29)
@@ -210,7 +213,7 @@
 ### Fase 6 — Sorveglianza e alert
 - [ ] `flame_detector` OpenCV su OV5647
 - [ ] Nodo DHT-11 — topic MQTT `apss/sensors/env`
-- [ ] AlertScreen app — log alert + clip video
+- [x] AlertScreen app — log alert + clip video
 - [ ] Notifiche push su Android
 
 ### Fase 7 — Docking autonomo
@@ -252,7 +255,6 @@
 | Bug Video MainScreen al primo `on_enter` | ~~Chiuso~~ | Risolto con TCP bind su 0.0.0.0 — video funzionante al primo avvio |
 | Log rumore `Camera Init Error!` per `/dev/camera_usb` | Bassa | Handler legacy Yahboom, non funzionale — pre-esistente |
 | Ripristino aggiornamenti ROS2 Humble su hawk | Bassa | Dopo hold config completa su entrambi i sistemi |
-| Subscriber /apss/alarm in rosmaster_main.py | Media | Per Kivy poll TCP |
 
 ---
 
