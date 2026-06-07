@@ -159,10 +159,10 @@ Soglie calibrate empiricamente su ciclo scarica completo 28/05–04/06/2026 (273
 | `apss_robot.urdf.xml` | Descrizione robot (URDF) |
 | `apss_lidar.launch.py` | Launch: RPLIDAR + robot_state_publisher + tf + slam_toolbox + RViz2 |
 | `rviz/apss.rviz` | Configurazione RViz2 |
-| `oled_node.py` | Nodo OLED SSD1306 — layout: APSS / IP / V grande (asterisco se lettura diretta INA219) / A W. Subscriber `/battery` + fallback INA219 diretto con watchdog 5s. Subscriber `/apss/oled_alert` — scrolling messaggi allarme sulla prima riga |
+| `oled_node.py` | Nodo OLED SSD1306 — layout: APSS / IP / V grande (asterisco se lettura diretta INA219) / A W. Subscriber `/battery` + fallback INA219 diretto con watchdog 5s. Subscriber `/apss/oled_alert` (std_msgs/String JSON): messages non vuota → riga 0 in scrolling da destra verso sinistra, prefisso "APSS \| ", velocità 8px/tick a 2Hz, reset posizione solo su cambio testo; messages vuota → riga 0 torna a "APSS" statico centrato |
 | `battery_node.py` | Monitor INA219 v2.0 — pubblica `/battery` (BatteryState, LiFePO4, coulomb counting) + `/battery/stats` ogni 2s |
 | `safety_node.py` | **Operativo** — Architettura a regole dichiarative YAML (safety_rules.yaml). Pubblica `/apss/alarm` (std_msgs/String JSON) a 0.5Hz. Grace period 30s al boot. 4 regole attive: battery_voltage (threshold_low, 3 livelli) + tof_front/left/right_frozen |
-| `alarm_node.py` | **Pianificato** — dispatcher reazioni: voce piper-tts (italiano/inglese configurabile), publisher `/apss/oled_alert`, storico 20 entry in logs/alarm_history.json |
+| `alarm_node.py` | **Operativo** — dispatcher reazioni: voce piper-tts v1.4.2 (italiano/inglese configurabile), publisher `/apss/oled_alert`, storico 20 entry in logs/alarm_history.json |
 | `tof_node.py` | (pianificato) Legge TCA9548A CH2/CH3/CH4 — pubblica `/tof/*` |
 | `avoidance_node.py` | (pianificato) Obstacle avoidance — subscribe `/tof/*` → pubblica `/cmd_vel` |
 
@@ -218,18 +218,35 @@ Formato /apss/alarm:
 }
 ```
 
-### alarm_node.py — pianificato (Giugno 2026)
+### alarm_node.py — v1.0 (Giugno 2026)
 
 Dispatcher reazioni agli allarmi pubblicati da safety_node.
 
 | Parametro | Valore |
 |-----------|--------|
 | Topic input | /apss/alarm |
-| Voce | piper-tts, lingua configurabile (it/en) in safety_rules.yaml |
-| Template | Dinamici con variabili {source}, {value}, {message} |
+| Voce | piper-tts v1.4.2 — lingua configurabile (it/en) in safety_rules.yaml |
+| Device audio | plughw:Headphones (ALSA) |
+| Voci disponibili | it_IT-paola-medium.onnx, en_US-amy-medium.onnx |
+| Source labels | Configurabili per lingua in safety_rules.yaml |
+| Template | Dinamici con variabili {source_label}, {value}, {message} |
 | Topic OLED | /apss/oled_alert (std_msgs/String JSON) |
-| Storico | logs/alarm_history.json, FIFO 20 entry |
+| Storico | ~/Workspaces/rosmaster_project/logs/alarm_history.json, FIFO 20 entry |
 | Livelli | LOW (ogni 30s), CRITICAL (ogni 10s), EMERGENCY (SOS), ERROR (ogni 60s) |
+| Stato | ✅ Operativo |
+
+### Configurazione audio hawk (Giugno 2026)
+
+| Parametro | Valore |
+|-----------|--------|
+| Engine TTS | piper-tts v1.4.2 (pip --user) |
+| Device ALSA | plughw:Headphones (bcm2835 Headphones) |
+| Gruppo utente | hawk aggiunto al gruppo audio |
+| Volume | 100% PCM + Headphone — persistente via alsactl store |
+| Voce italiana | ~/piper-voices/it_IT-paola-medium.onnx |
+| Voce inglese | ~/piper-voices/en_US-amy-medium.onnx |
+| Lingua default | it (configurabile in safety_rules.yaml) |
+| Soppressione warning | stderr=subprocess.DEVNULL (GPU onnxruntime) |
 
 ### TF tree
 ```
